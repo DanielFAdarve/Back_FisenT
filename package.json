@@ -1,0 +1,27 @@
+{
+  "name": "descarga_gomedysis",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./src/server.js",
+  "scripts": {
+    "start": "node ./src/server.js",
+    "dev": "nodemon -e js ./src/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@azure/storage-file-share": "^12.27.0",
+    "axios": "^1.8.2",
+    "cheerio": "^1.0.0",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsdom": "^26.0.0",
+    "nodemon": "^3.1.9",
+    "pdf-lib": "^1.17.1",
+    "pg": "^8.16.0",
+    "puppeteer": "^24.4.0",
+    "xlsx": "^0.18.5"
+  }
+}
