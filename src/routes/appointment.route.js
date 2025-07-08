@@ -1,5 +1,5 @@
 const express = require('express');
-const { uploadDevolution, getDevolutionsData ,muestra } = require('../controllers/devolution.controller');
+const { uploadDevolution, getDevolutionsData ,muestra } = require('../controllers/patient.controller');
 const router = express.Router();
 
 router.post('/cargar-devoluciones', uploadDevolution);
