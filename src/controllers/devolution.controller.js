@@ -31,8 +31,6 @@ const getDevolutionsData = async (req, res) => {
   }
 };
 
-
-
 const muestra = async (req, res) => {
   try {
 
