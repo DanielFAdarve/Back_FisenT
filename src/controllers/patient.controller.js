@@ -1,4 +1,4 @@
-const support = require('../services/Devolution.service');
+const support = require('../services/patient.service');
 const response = require('../models/Response.models')
 
 const uploadDevolution = async (req, res) => {
@@ -36,7 +36,7 @@ const muestra = async (req, res) => {
 
     // const result = await support.getDevolutions();
 
-    res.status(200).send(response.set(200, 'Se realiza Muestra de la info', result));
+    res.status(200).send(response.set(200, 'Se realiza Muestra de la info'));
 
   } catch (error) {
 
