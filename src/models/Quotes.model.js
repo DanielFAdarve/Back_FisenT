@@ -27,7 +27,7 @@ const {Model,DataTypes} = require('sequelize');
                 },
                 motivo : {
                     type: DataTypes.STRING(255),
-                    allowNull: fasle
+                    allowNull: false
                 },
                 id_profesional : {
                     type: DataTypes.INTEGER,

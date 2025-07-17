@@ -2,7 +2,7 @@ const {Model,DataTypes} = require('sequelize');
 
     class Packages extends Model {
         static initModel(sequelize){
-        Patient.init(
+        Packages.init(
             {
                 id : {
                     type: DataTypes.INTEGER,

@@ -13,16 +13,19 @@
   "dependencies": {
     "@azure/storage-file-share": "^12.27.0",
     "axios": "^1.8.2",
+    "bcrypt": "^6.0.0",
     "cheerio": "^1.0.0",
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "jsdom": "^26.0.0",
+    "jsonwebtoken": "^9.0.2",
     "nodemon": "^3.1.9",
     "pdf-lib": "^1.17.1",
     "pg": "^8.16.0",
     "puppeteer": "^24.4.0",
     "sequelize": "^6.37.7",
+    "sqlite3": "^5.1.7",
     "xlsx": "^0.18.5"
   }
 }

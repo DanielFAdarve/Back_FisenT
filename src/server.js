@@ -5,7 +5,8 @@ const dotenv = require('dotenv');
 
 // Carga las rutas y express
 const app = require('./routes.js');
-const express = require('express');
+const { sequelize } = require('./models');
+
 
 dotenv.config();
 
@@ -13,7 +14,19 @@ dotenv.config();
 const port = process.env.PORT || 3000;
 
 
-app.listen(port, () => {
-    console.log(`Proyecto Corriendo en:  http://localhost:${port}`);
-});
- 
+async function startServer() {
+  try {
+    await sequelize.authenticate(); // Verifica conexión
+    await sequelize.sync();         // Crea tablas si no existen
+
+    console.log('✅ Conexión establecida y tablas sincronizadas.');
+
+    app.listen(port, () => {
+      console.log(`🚀 Servidor escuchando en http://localhost:${port}`);
+    });
+  } catch (error) {
+    console.error('❌ Error al iniciar el servidor:', error);
+  }
+}
+
+startServer();
