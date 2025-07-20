@@ -47,7 +47,7 @@ class Patient extends Model {
                 regimen: DataTypes.STRING,
                 modalidad_deportiva: DataTypes.STRING,
                 red_apoyo: DataTypes.BOOLEAN,
-                antecedentos: {
+                antecedentes: {
                     type: DataTypes.STRING,
                     allowNull: false
                 }

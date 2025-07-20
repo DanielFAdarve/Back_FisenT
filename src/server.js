@@ -18,6 +18,10 @@ async function startServer() {
   try {
     await sequelize.authenticate(); // Verifica conexión
     await sequelize.sync();         // Crea tablas si no existen
+    // await sequelize.sync({ force: true }).then(() => {
+    // console.log('Base de datos actualizada (alter: true)');
+    // });
+
 
     console.log('✅ Conexión establecida y tablas sincronizadas.');
 
