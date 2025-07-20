@@ -88,23 +88,6 @@ const deletePatient = async (req, res) => {
 };
 
 
-
-
-const muestra = async (req, res) => {
-  try {
-
-    // const result = await support.getDevolutions();
-
-    res.status(200).send(response.set(200, 'Se realiza Muestra de la info'));
-
-  } catch (error) {
-
-    res.status(400).send(response.set(error.status || 500, error.message || 'no hubo respuesta del servidor'));
-  }
-};
-
-
-
 module.exports = { 
     create,
     getAllPatients,
@@ -112,6 +95,6 @@ module.exports = {
     getPatientByDocument,
     updatePatient,
     deletePatient,
-    muestra };
+    };
 
 

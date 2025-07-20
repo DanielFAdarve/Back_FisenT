@@ -1,5 +1,5 @@
 const express = require('express');
-const { create, getAllPatients, getPatientById, getPatientByDocument, updatePatient, deletePatient, muestra } = require('../controllers/patient.controller');
+const patientController = require('../controllers/patient.controller');
 const router = express.Router();
 const { verifyToken } = require('../middlewares/auth.middleware');
 
@@ -7,27 +7,23 @@ const { verifyToken } = require('../middlewares/auth.middleware');
 router.use(verifyToken);
 
 // Metodos para consultar todos los Pacientes
-router.get('/get-patients', getAllPatients);
+router.get('/get-patients', patientController.getAllPatients);
 
 // Metodos para consultar Paciente por Id
-router.get('/get-patient/:id', getPatientById);
+router.get('/get-patient/:id', patientController.getPatientById);
 
 // Metodos para consultar Paciente por Document
-router.get('/get-patient-by-doc/:id', getPatientByDocument);
+router.get('/get-patient-by-doc/:id', patientController.getPatientByDocument);
 
 //Metodo para Crear Pacientes
-router.post('/create-patient', create);
+router.post('/create-patient', patientController.create);
 
 // Metodo para Modificar Pacientes
-router.put('/update-patient/:id', updatePatient);
+router.put('/update-patient/:id', patientController.updatePatient);
 
 
 //Metodo para Eliminar Pacientes 
-router.delete('/delete-patient/:id', deletePatient);
-
-
-
-router.get('/prueba', muestra);
+router.delete('/delete-patient/:id', patientController.deletePatient);
 
 
 
