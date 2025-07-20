@@ -10,22 +10,29 @@ module.exports = {
     const { username, password } = req.body;
 
     try {
+        //Valida que lleguen los datos necesarios
       if (!username || !password) {
         return res.status(400).json({ message: 'Usuario y contraseña obligatorios' });
       }
 
+        // Busca el usuario en la base de datos
+      console.log("Buscar usuario para auth")
       const user = await User.findOne({ where: { username } });
 
+        // Si no se encuentra el usuario, retorna un error
       if (!user) {
         return res.status(401).json({ message: 'Usuario no encontrado' });
       }
 
+        // Valida la contraseña
       const isValid = await user.validPassword(password);
 
+        // Si la contraseña es incorrecta, retorna un error
       if (!isValid) {
         return res.status(401).json({ message: 'Contraseña incorrecta' });
       }
 
+        // Genera un token JWT
       const token = jwt.sign(
         { id: user.id, username: user.username, role: user.role },
         SECRET_KEY,
@@ -40,6 +47,7 @@ module.exports = {
     }
   },
 
+    
   verifyToken(req, res, next) {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];

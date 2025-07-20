@@ -1,19 +1,45 @@
-const uploadFile = async (params) => {
-  if (!params.base64File) {
-    throw new Error('Archivo base64 es requerido');
-  }
-  // const insertedRows = await uploadDevolutionsFromBase64(params.base64File);
-  const insertedRows = "ok";
-  return insertedRows;
-};
+const { Patient } = require('../models');
 
-const getDevolutions = async (params) => {
-  try {
-    return "pl";
-  } catch (error) {
-    console.error('Error en getDevolution controller:', error);
-    throw error;
-  }
-};
+const createPatient = async (data) => {
 
-module.exports = { uploadFile, getDevolutions };
+  if (data.tipo_doc.length < 1) {
+    return 'El tipo de doc viene vacio';
+  }
+
+  return await Patient.create(data);
+}
+
+const getAllPatients = async () => {
+  return await Patient.findAll()
+}
+
+const getPatientById = async (id) => {
+  return await Patient.findOne({ where: { id } })
+}
+
+
+const getPatientByDocumentNumber = async (num_doc) => {
+  return await Patient.findOne({ where: { num_doc } })
+}
+
+const updatePatient = async (id, data) => {
+
+  const [updated] = await Patient.update(data, { where: { id } });
+  return updated ? await Patient.findOne({ where: { id } }) : null;
+
+}
+
+const deletePatient = async (id) => {
+
+  return await Patient.destroy({ where: { id } });
+
+}
+
+module.exports = {
+  createPatient,
+  getAllPatients,
+  getPatientById,
+  getPatientByDocumentNumber,
+  updatePatient,
+  deletePatient
+}
