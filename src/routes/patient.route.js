@@ -1,6 +1,10 @@
 const express = require('express');
 const { create, getAllPatients, getPatientById, getPatientByDocument, updatePatient, deletePatient, muestra } = require('../controllers/patient.controller');
 const router = express.Router();
+const { verifyToken } = require('../middlewares/auth.middleware');
+
+// Aplica el middleware a todas las rutas de pacientes
+router.use(verifyToken);
 
 // Metodos para consultar todos los Pacientes
 router.get('/get-patients', getAllPatients);

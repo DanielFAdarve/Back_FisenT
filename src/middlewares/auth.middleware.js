@@ -1,79 +1,23 @@
-const authService = require('../services/auth.service');
+const jwt = require('jsonwebtoken');
+const dotenv = require('dotenv');
+dotenv.config();
 
-const getConnectionParams = (invoicePrefix) => {
+const SECRET_KEY = process.env.JWT_SECRET || 'daniel';
 
-    connectionParams = {
-        "CASM":{
-            "officeId":"17",
-            "companyId":"1"
-        },
-        "ACM":{
-            "officeId":"8",
-            "companyId":"1"
-        },
-        "DIAC":{
-            "officeId":"24",
-            "companyId":"709862"
-        },
-        "V":{
-            "officeId":"9",
-            "companyId":"329436"
-        },
-        "ACI":{
-            "officeId":"3",
-            "companyId":"1"
-        }
-    }
+const verifyToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer <token>
 
-    console.log(connectionParams[invoicePrefix]);
-    
-    return connectionParams[invoicePrefix] || {
-        "officeId":"8",
-        "companyId":"1"
-    };
+  if (!token) return res.status(401).json({ message: 'Token no proporcionado' });
+
+  jwt.verify(token, SECRET_KEY, (err, user) => {
+    if (err) return res.status(403).json({ message: 'Token inválido' });
+
+    req.user = user; // Aquí se inyecta el payload
+    next();
+  });
 };
 
-const getSessionCookie = async (invoicePrefix) => {
-    try {
-        console.log('Generando Cookies');
-        const connectionParams = getConnectionParams(invoicePrefix);
-        const session = await authService.updateSession(connectionParams);
-        const originalCookies = session.headers['set-cookie'];
-
-        if (!originalCookies || originalCookies.length === 0) {
-            throw new Error('La respuesta no entrego las cookies');
-        }
-
-        const newCookies = originalCookies.map(cookie => {
-            if (cookie.includes('Domain=')) {
-                return cookie.replace(/Domain=[^;]+/, 'Domain=weliiavidanti.gomedisys.com');
-            } else {
-                return `${cookie}; Domain=weliiavidanti.gomedisys.com`;
-            }
-        });
-
-        const allCookies = [...originalCookies, ...newCookies];
-
-        console.log('Se crearon las cookies para los dos dominios');
-
-        return allCookies;
-
-    } catch (error) {
-        console.error('Failed to create new session:', error.message);
-        throw { status: 401, message: 'Unauthorized. Failed to generate a new session.' };
-    }
+module.exports = {
+  verifyToken
 };
-
-const authMiddleware = async (req, res, next) => {
-    try {
-        const newCookie = await getSessionCookie();
-        res.clearCookie('authSession');
-        res.cookie('authSession', newCookie, { httpOnly: true, secure: true });
-        req.sessionCookie = newCookie;
-        next();
-    } catch (error) {
-        return res.status(error.status || 500).json({ success: false, message: error.message });
-    }
-};
-
-module.exports = { authMiddleware, getSessionCookie };
