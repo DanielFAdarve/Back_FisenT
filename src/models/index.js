@@ -19,40 +19,40 @@ const StatusPackages = require('./StatusPackages.model');
 const StatusQuotes = require('./StatusQuotes.model');
 const User = require('./User.model');
 
-// Inicialización
-AttentionPackages.initModel(sequelize);
-Cie10.initModel(sequelize);
-HistoryQuote.initModel(sequelize);
-Packages.initModel(sequelize);
-Patient.initModel(sequelize);
-Professional.initModel(sequelize);
-Quotes.initModel(sequelize);
-StatusPackages.initModel(sequelize);
-StatusQuotes.initModel(sequelize);
-User.initModel(sequelize);
+// Inicialización de modelos (retornando la instancia)
+const AttentionPackagesModel = AttentionPackages.initModel(sequelize);
+const Cie10Model = Cie10.initModel(sequelize);
+const HistoryQuoteModel = HistoryQuote.initModel(sequelize);
+const PackagesModel = Packages.initModel(sequelize);
+const PatientModel = Patient.initModel(sequelize);
+const ProfessionalModel = Professional.initModel(sequelize);
+const QuotesModel = Quotes.initModel(sequelize);
+const StatusPackagesModel = StatusPackages.initModel(sequelize);
+const StatusQuotesModel = StatusQuotes.initModel(sequelize);
+const UserModel = User.initModel(sequelize);
 
 // Relaciones
-Quotes.belongsTo(Professional, { foreignKey: 'id_profesional' });
-Quotes.belongsTo(Packages, { foreignKey: 'id_paquetes' });
-Quotes.belongsTo(StatusQuotes, { foreignKey: 'id_estado_citas' });
+QuotesModel.belongsTo(ProfessionalModel, { foreignKey: 'id_profesional' });
+QuotesModel.belongsTo(PackagesModel, { foreignKey: 'id_paquetes' });
+QuotesModel.belongsTo(StatusQuotesModel, { foreignKey: 'id_estado_citas' });
 
-Packages.belongsTo(Patient, { foreignKey: 'id_pacientes' });
-Packages.belongsTo(AttentionPackages, { foreignKey: 'id_paquetes_atenciones' });
-Packages.belongsTo(StatusPackages, { foreignKey: 'id_estado_citas' });
+PackagesModel.belongsTo(PatientModel, { foreignKey: 'id_pacientes' });
+PackagesModel.belongsTo(AttentionPackagesModel, { foreignKey: 'id_paquetes_atenciones' });
+PackagesModel.belongsTo(StatusPackagesModel, { foreignKey: 'id_estado_citas' });
 
-HistoryQuote.belongsTo(Quotes, { foreignKey: 'id_cita' });
-HistoryQuote.belongsTo(Cie10, { foreignKey: 'id_cie' });
+HistoryQuoteModel.belongsTo(QuotesModel, { foreignKey: 'id_cita' });
+HistoryQuoteModel.belongsTo(Cie10Model, { foreignKey: 'id_cie' });
 
 module.exports = {
   sequelize,
-  AttentionPackages,
-  Cie10,
-  HistoryQuote,
-  Packages,
-  Patient,
-  Professional,
-  Quotes,
-  StatusPackages,
-  StatusQuotes,
-  User
+  AttentionPackages: AttentionPackagesModel,
+  Cie10: Cie10Model,
+  HistoryQuote: HistoryQuoteModel,
+  Packages: PackagesModel,
+  Patient: PatientModel,
+  Professional: ProfessionalModel,
+  Quotes: QuotesModel,
+  StatusPackages: StatusPackagesModel,
+  StatusQuotes: StatusQuotesModel,
+  User: UserModel
 };

@@ -1,31 +1,31 @@
-const { Model,DataTypes } = require("sequelize");
+const { Model, DataTypes } = require("sequelize");
 
 class AttentionPackages extends Model {
-    static initModel(sequelize){
-        AttentionPackages.init(
+    static initModel(sequelize) {
+        return AttentionPackages.init(
             {
-                id : {
+                id: {
                     type: DataTypes.INTEGER,
                     primaryKey: true,
                     autoIncrement: true
                 },
-                descripcion : {
-                    type: DataTypes.STRING(100), 
-                    allowNull: false
-                }, 
-                cantidad_sesiones : {
-                    type: DataTypes.INTEGER, 
+                descripcion: {
+                    type: DataTypes.STRING(100),
                     allowNull: false
                 },
-                valor : {
+                cantidad_sesiones: {
+                    type: DataTypes.INTEGER,
+                    allowNull: false
+                },
+                valor: {
                     type: DataTypes.INTEGER
                 }
-            },{
-                sequelize,
-                modelName: 'AttentionPackages',
-                tableName: 'atencion_paquetes',
-                timestamps: false
-            }
+            }, {
+            sequelize,
+            modelName: 'AttentionPackages',
+            tableName: 'atencion_paquetes',
+            timestamps: false
+        }
         );
 
     }

@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 
 class User extends Model {
     static initModel(sequelize) {
-        User.init(
+        return User.init(
             {
                 id: {
                     type: DataTypes.INTEGER,

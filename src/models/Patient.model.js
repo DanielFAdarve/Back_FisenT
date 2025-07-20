@@ -1,28 +1,28 @@
-const {Model,DataTypes} = require('sequelize');
+const { Model, DataTypes } = require('sequelize');
 
 class Patient extends Model {
-    static initModel(sequelize){
-        Patient.init(
+    static initModel(sequelize) {
+        return Patient.init(
             {
-                id : {
+                id: {
                     type: DataTypes.INTEGER,
                     primaryKey: true,
                     autoIncrement: true
                 },
-                tipo_doc : {
-                    type: DataTypes.STRING(3), 
+                tipo_doc: {
+                    type: DataTypes.STRING(3),
                     allowNull: false
                 },
-                num_doc : {
-                    type: DataTypes.STRING(20), 
+                num_doc: {
+                    type: DataTypes.STRING(20),
                     allowNull: false
                 },
-                nombre : {
-                    type: DataTypes.STRING(50), 
+                nombre: {
+                    type: DataTypes.STRING(50),
                     allowNull: false
                 },
-                apellido : {
-                    type: DataTypes.STRING(50), 
+                apellido: {
+                    type: DataTypes.STRING(50),
                     allowNull: false
                 },
                 direccion: DataTypes.STRING,
@@ -51,12 +51,12 @@ class Patient extends Model {
                     type: DataTypes.STRING,
                     allowNull: false
                 }
-            },{
-                sequelize,
-                modelName: 'Patient',
-                tableName: 'pacientes',
-                timestamps: false
-            }
+            }, {
+            sequelize,
+            modelName: 'Patient',
+            tableName: 'pacientes',
+            timestamps: false
+        }
         );
 
     }

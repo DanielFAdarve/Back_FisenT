@@ -1,24 +1,24 @@
-const {Model,DataTypes} = require('sequelize');
+const { Model, DataTypes } = require('sequelize');
 
 class Professional extends Model {
-    static initModel(sequelize){
-        Professional.init(
+    static initModel(sequelize) {
+        return Professional.init(
             {
-                id : {
+                id: {
                     type: DataTypes.INTEGER,
                     primaryKey: true,
                     autoIncrement: true
                 },
-                nombre : {
-                    type: DataTypes.STRING(50), 
+                nombre: {
+                    type: DataTypes.STRING(50),
                     allowNull: false
                 }
-            },{
-                sequelize,
-                modelName: 'Professional',
-                tableName: 'profesional',
-                timestamps: false
-            }
+            }, {
+            sequelize,
+            modelName: 'Professional',
+            tableName: 'profesional',
+            timestamps: false
+        }
         );
 
     }
