@@ -4,6 +4,7 @@ const cors = require('cors');
 
 // Carga las rutas del Proyecto
 const patient = require('./routes/patient.route');
+const packages = require('./routes/packages.route');
 const appointment = require('./routes/appointment.route');
 const errorHandler = require('./middlewares/errorHandler.middleware');
 const cookieParser = require('cookie-parser');
@@ -38,5 +39,5 @@ app.use(errorHandler);
 app.use('/auth', auth);
 app.use('/patient',patient);
 app.use('/appointment',appointment);
-
+app.use('/packages',packages);
 module.exports = app;

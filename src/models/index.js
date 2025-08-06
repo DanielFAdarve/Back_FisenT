@@ -36,9 +36,9 @@ QuotesModel.belongsTo(ProfessionalModel, { foreignKey: 'id_profesional' });
 QuotesModel.belongsTo(PackagesModel, { foreignKey: 'id_paquetes' });
 QuotesModel.belongsTo(StatusQuotesModel, { foreignKey: 'id_estado_citas' });
 
-PackagesModel.belongsTo(PatientModel, { foreignKey: 'id_pacientes' });
-PackagesModel.belongsTo(AttentionPackagesModel, { foreignKey: 'id_paquetes_atenciones' });
-PackagesModel.belongsTo(StatusPackagesModel, { foreignKey: 'id_estado_citas' });
+PackagesModel.belongsTo(PatientModel, { foreignKey: 'id_pacientes', as: 'patient' });
+PackagesModel.belongsTo(AttentionPackagesModel, { foreignKey: 'id_paquetes_atenciones', as : 'attentionPackage' });
+PackagesModel.belongsTo(StatusPackagesModel, { foreignKey: 'id_estado_citas', as : 'statusPackage' });
 
 HistoryQuoteModel.belongsTo(QuotesModel, { foreignKey: 'id_cita' });
 HistoryQuoteModel.belongsTo(Cie10Model, { foreignKey: 'id_cie' });
