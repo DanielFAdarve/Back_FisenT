@@ -7,7 +7,7 @@ const { verifyToken } = require('../middlewares/auth.middleware');
 router.get('/get-packages', packageController.getAllPackages);
 
 router.post('/create-package', packageController.createPackage);
-router.put('/update-package/:id', packageController.udpatePackage);
+router.put('/update-package/:id', packageController.updatePackage);
 router.delete('/delete-package/:id', packageController.deletePackage);
 
 

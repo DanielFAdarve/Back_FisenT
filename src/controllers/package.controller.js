@@ -25,7 +25,7 @@ const createPackage = async (req, res) => {
 
 
 
-const udpatePackage = async (req, res) => {
+const updatePackage = async (req, res) => {
     try {
         const packageId = req.params.id;
         if (!packageId) {
@@ -58,6 +58,6 @@ const deletePackage = async (req, res) => {
 module.exports = {
     getAllPackages,
     createPackage,
-    udpatePackage,
+    updatePackage,
     deletePackage
 }
