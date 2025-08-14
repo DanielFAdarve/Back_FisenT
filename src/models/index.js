@@ -40,8 +40,8 @@ PackagesModel.belongsTo(PatientModel, { foreignKey: 'id_pacientes', as: 'patient
 PackagesModel.belongsTo(AttentionPackagesModel, { foreignKey: 'id_paquetes_atenciones', as : 'attentionPackage' });
 PackagesModel.belongsTo(StatusPackagesModel, { foreignKey: 'id_estado_citas', as : 'statusPackage' });
 
-HistoryQuoteModel.belongsTo(QuotesModel, { foreignKey: 'id_cita' });
-HistoryQuoteModel.belongsTo(Cie10Model, { foreignKey: 'id_cie' });
+HistoryQuoteModel.belongsTo(QuotesModel, { foreignKey: 'id_cita', as :'Quotes' });
+HistoryQuoteModel.belongsTo(Cie10Model, { foreignKey: 'id_cie', as :'Cie10' });
 
 module.exports = {
   sequelize,
