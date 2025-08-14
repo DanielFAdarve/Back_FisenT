@@ -24,7 +24,8 @@ class HistoryquotesService {
                 id: dataHistoryquotes.id,
                 id_cita: dataHistoryquotes.id_cita,
                 id_cie: dataHistoryquotes.id_cie,
-
+                estado_paciente: dataHistoryquotes.descripcion_estado_paciente,
+                recomendaciones: dataHistoryquotes.recomendaciones,
                 //Preguntar si la descripción del estado paciente y recomendaciones deben estar acá?
             }
         });
@@ -42,7 +43,7 @@ class HistoryquotesService {
 
     async updateHistoryquotes(id, data) {
         const HistoryquotesRecord = await HistoryQuote.findOne({ where: { id } });
-        if (!HistoryquotessRecord) {
+        if (!HistoryquotesRecord) {
             throw new Error('Historia no encontrada');
         }
         return await HistoryquotesRecord.update(data);
