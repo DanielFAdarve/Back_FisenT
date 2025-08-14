@@ -7,6 +7,8 @@ const patient = require('./routes/patient.route');
 const packages = require('./routes/packages.route');
 const quotes = require('./routes/quotes.route');
 const appointment = require('./routes/appointment.route');
+const historyquotes = require('./routes/historyquote.route');
+
 const errorHandler = require('./middlewares/errorHandler.middleware');
 const cookieParser = require('cookie-parser');
 const auth = require('./routes/auth.route');
@@ -42,4 +44,6 @@ app.use('/patient',patient);
 app.use('/appointment',appointment);
 app.use('/packages',packages);
 app.use('/quotes',quotes);
+app.use('/history',historyquotes);
+
 module.exports = app;
