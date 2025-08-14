@@ -3,7 +3,7 @@ const historyquotesService = require('../services/historyquotes.service');
 
 const getAllHistoryquotes = async (req, res) => {
     try {
-        const historyquotes = await quotesService.getAllHistoryquotes();
+        const historyquotes = await historyquotesService.getAllHistoryquotes();
          res.status(200).send(response.set(200, 'Consultada la informacion de las historias',historyquotes));
 
     } catch (error) {
@@ -32,7 +32,7 @@ const updateHistoryquotes = async (req, res) => {
             return res.status(400).send(response.set(400, 'ID de la historia es requerido'));
         }
         const historyquotesData = req.body;
-        const historyquotes = await quotesService.updateHistoryquotes(historyquotesId,historyquotesData);
+        const historyquotes = await historyquotesService.updateHistoryquotes(historyquotesId,historyquotesData);
          res.status(200).send(response.set(200, 'Se actualizo la historia',historyquotes));
 
     } catch (error) {

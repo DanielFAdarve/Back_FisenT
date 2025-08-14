@@ -7,7 +7,7 @@ class HistoryquotesService {
 
     async getAllHistoryquotes() {
 
-        let infoHistoryquotes = await Historyquotes.findAll(
+        let infoHistoryquotes = await HistoryQuote.findAll(
             {
                 include: [
                     { model: Quotes, as: 'Quotes' },
@@ -37,11 +37,11 @@ class HistoryquotesService {
             throw new Error('Faltan datos requeridos para crear la historia');
         }
 
-        return await Historyquotes.create(data);
+        return await HistoryQuote.create(data);
     }
 
     async updateHistoryquotes(id, data) {
-        const HistoryquotesRecord = await Historyquotes.findOne({ where: { id } });
+        const HistoryquotesRecord = await HistoryQuote.findOne({ where: { id } });
         if (!HistoryquotessRecord) {
             throw new Error('Historia no encontrada');
         }
@@ -50,7 +50,7 @@ class HistoryquotesService {
     }
 
     async deleteHistoryquotes(id) {
-        const HistoryquotesRecord = await Historyquotes.findOne({ where: { id } });
+        const HistoryquotesRecord = await HistoryQuote.findOne({ where: { id } });
         if (!HistoryquotesRecord) {
             throw new Error('Historia no encontrada');
         }

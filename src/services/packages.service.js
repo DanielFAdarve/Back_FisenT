@@ -1,6 +1,5 @@
 //Paquetes Service
 //Dependencies
-const { rotateAndSkewTextDegreesAndTranslate } = require('pdf-lib');
 const { Packages, Patient, AttentionPackages, StatusPackages } = require('../models');
 
 
