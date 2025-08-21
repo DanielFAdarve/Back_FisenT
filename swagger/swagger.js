@@ -8,7 +8,7 @@ const options = {
     info: {
       title: 'API de Gestión Médica',
       version: '1.0.0',
-      description: 'Documentación de la API de gestión de pacientes, citas y más.',
+      description: 'Documentación de la API de gestión de pacientes, citas y más. para terapias',
     },
     servers: [
       {
