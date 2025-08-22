@@ -5,7 +5,7 @@ const authController = require('../controllers/auth.controller');
 /**
  * @swagger
  * tags:
- *   name: Auth
+ *   name: Autenticacion
  *   description: Endpoints para autenticación de usuarios
  */
 
@@ -15,7 +15,7 @@ const authController = require('../controllers/auth.controller');
  *   post:
  *     summary: Iniciar sesión y obtener un token JWT
  *     description: Valida las credenciales de un usuario y devuelve un token JWT con duración de 2 horas.
- *     tags: [Auth]
+ *     tags: [Autenticacion]
  *     requestBody:
  *       required: true
  *       content:
