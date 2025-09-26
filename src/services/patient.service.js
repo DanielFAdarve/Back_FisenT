@@ -10,7 +10,7 @@ const createPatient = async (data) => {
 }
 
 const getAllPatients = async () => {
-  return await Patient.findAll()
+  return await Patient.findAll({where: { estado: true }});
 }
 
 const getPatientById = async (id) => {
@@ -31,7 +31,9 @@ const updatePatient = async (id, data) => {
 
 const deletePatient = async (id) => {
 
-  return await Patient.destroy({ where: { id } });
+  // return await Patient.destroy({ where: { id } });
+    const [updated] = await Patient.update({estado:false}, { where: { id } });
+  return updated ? await Patient.findOne({ where: { id } }) : null;
 
 }
 

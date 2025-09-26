@@ -50,7 +50,8 @@ class Patient extends Model {
                 antecedentes: {
                     type: DataTypes.STRING,
                     allowNull: false
-                }
+                },
+                estado: DataTypes.BOOLEAN,
             }, {
             sequelize,
             modelName: 'Patient',
