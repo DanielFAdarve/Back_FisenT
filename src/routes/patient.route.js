@@ -3,7 +3,7 @@ const patientController = require('../controllers/patient.controller');
 const router = express.Router();
 const { verifyToken } = require('../middlewares/auth.middleware');
 
-// router.use(verifyToken);
+router.use(verifyToken);
 
 /**
  * @swagger
@@ -144,7 +144,7 @@ router.get('/get-patient-by-doc/:id', patientController.getPatientByDocument);
  *       - bearerAuth: []
  *     requestBody:
  *       required: true
- *       content:
+ *       content:  
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/Patient'

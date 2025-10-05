@@ -1,3 +1,5 @@
+/* The Patient class defines the model for a patient entity with various attributes in a Sequelize
+environment. */
 const { Model, DataTypes } = require('sequelize');
 
 class Patient extends Model {
