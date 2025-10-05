@@ -6,6 +6,22 @@ dotenv.config();
 const SECRET_KEY = process.env.JWT_SECRET || 'daniel';
 
 module.exports = {
+
+  /**
+   * The async login function handles user authentication by validating credentials, checking for user
+   * existence, verifying password, and generating a JWT token for authorization.
+   * @param req - The `req` parameter in the `async login` function is typically an object representing
+   * the HTTP request. It contains information about the request made to the server, such as the
+   * request headers, body, parameters, and more. In this specific function, `req.body` is used to
+   * extract the `
+   * @param res - The `res` parameter in the `async login` function is the response object that will be
+   * used to send the response back to the client making the request. It is typically provided by the
+   * Express.js framework when handling HTTP requests. The `res` object has methods like
+   * `res.status()`, `
+   * @returns The login function returns a JSON response with a token if the login process is
+   * successful. If there are any errors during the process, it will return an appropriate error
+   * message with the corresponding status code.
+   */
   async login(req, res) {
     const { username, password } = req.body;
 
@@ -45,7 +61,7 @@ module.exports = {
       console.error('Error en login:', error);
       return res.status(500).json({ message: 'Error interno del servidor' });
     }
-  },
+  }
 
 
 };
