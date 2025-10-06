@@ -1,6 +1,17 @@
 const response = require('../models/Response.models')
 const historyquotesService = require('../services/historyquotes.service');
 
+/**
+ * The function `getAllHistoryquotes` retrieves all history quotes and sends a response with the
+ * retrieved data or an error message.
+ * @param req - The `req` parameter typically represents the request object in Node.js applications. It
+ * contains information about the HTTP request that triggered the function, such as headers,
+ * parameters, body content, and more. In this context, `req` is used to handle incoming requests to
+ * the `getAllHistoryquotes` function
+ * @param res - The `res` parameter in the code snippet refers to the response object in an Express.js
+ * route handler function. It is used to send a response back to the client making the request. In this
+ * case, `res` is used to send HTTP responses with status codes and data.
+ */
 const getAllHistoryquotes = async (req, res) => {
     try {
         const historyquotes = await historyquotesService.getAllHistoryquotes();
