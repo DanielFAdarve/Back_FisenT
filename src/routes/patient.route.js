@@ -3,7 +3,7 @@ const patientController = require('../controllers/patient.controller');
 const router = express.Router();
 const { verifyToken } = require('../middlewares/auth.middleware');
 
-router.use(verifyToken);
+// router.use(verifyToken);
 
 /**
  * @swagger

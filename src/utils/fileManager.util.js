@@ -86,4 +86,4 @@ const combineInvoices = async (downloadFolder, invoiceNumber) => {
 };
 
 
-module.exports = {createFolder , combineInvoices};
+module.exports = { createFolder, combineInvoices };
