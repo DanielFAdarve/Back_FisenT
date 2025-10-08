@@ -8,6 +8,10 @@ const sequelize = new Sequelize({
 });
 
 // Importación de modelos
+/* importing the model definition
+for the  entity from the '.js`. This allows the
+code to access and interact with the  model within the Sequelize ORM framework. */
+
 const AttentionPackages = require('./AttentionPackages.model');
 const Cie10 = require('./Cie10.model');
 const HistoryQuote = require('./HistoryQuote.model');

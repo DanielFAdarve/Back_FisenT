@@ -1,5 +1,9 @@
 {
     "workbench.editor.autoLockGroups": {
         "workbench.editorinputs.searchEditorInput": true
-    }
+    },
+    "docwriter.progress.trackFunctions": true,
+    "docwriter.progress.trackMethods": true,
+    "docwriter.progress.trackTypes": true,
+    "docwriter.progress.trackClasses": true
 }
