@@ -23,6 +23,18 @@ const getAllHistoryquotes = async (req, res) => {
 }
 
 
+/**
+ * The function `createHistoryquotes` handles the creation of historical quotes data and sends a
+ * response based on the outcome.
+ * @param req - The `req` parameter in the `createHistoryquotes` function typically represents the HTTP
+ * request object, which contains information about the incoming request from the client, such as
+ * headers, parameters, body content, etc. In this specific context, `req.body` is likely used to
+ * access the data sent in
+ * @param res - The `res` parameter in the `createHistoryquotes` function is the response object that
+ * is used to send a response back to the client making the request. It is typically provided by the
+ * Express.js framework in Node.js applications and contains methods for sending HTTP responses. In
+ * this function, `res`
+ */
 const createHistoryquotes = async (req, res) => {
     try {
         const historyquotesData = req.body;
@@ -35,6 +47,18 @@ const createHistoryquotes = async (req, res) => {
 }
 
 
+/**
+ * The function `updateHistoryquotes` is an asynchronous function that updates a history quote based on
+ * the provided ID and data, handling errors and sending appropriate responses.
+ * @param req - The `req` parameter in the `updateHistoryquotes` function is an object representing the
+ * HTTP request. It contains information about the request made to the server, such as the request
+ * parameters, body, headers, and more. In this function, `req` is used to extract the `id`
+ * @param res - The `res` parameter in the `updateHistoryquotes` function is the response object that
+ * will be sent back to the client making the request. It is used to send the HTTP response with the
+ * status code and data back to the client.
+ * @returns If the `historyquotesId` is not provided in the request parameters, a response with status
+ * code 400 and a message indicating that the ID is required will be returned.
+ */
 
 const updateHistoryquotes = async (req, res) => {
     try {
@@ -52,6 +76,20 @@ const updateHistoryquotes = async (req, res) => {
 }
 
 
+/**
+ * The function `deleteHistoryquotes` deletes a history quote based on the provided ID and sends a
+ * response with the outcome.
+ * @param req - The `req` parameter in the `deleteHistoryquotes` function is an object representing the
+ * HTTP request. It contains information about the request made to the server, such as the request
+ * headers, parameters, body, and more. In this function, `req.params.id` is used to extract the `
+ * @param res - The `res` parameter in the `deleteHistoryquotes` function is the response object that
+ * is used to send a response back to the client making the request. It is typically provided by the
+ * Express.js framework in Node.js applications. The `res` object has methods like `res.status()` and `
+ * @returns The `deleteHistoryquotes` function is returning a response based on the outcome of deleting
+ * a history quote. If the `historyquotesId` is not provided in the request parameters, it will return
+ * a 400 status with a message indicating that the ID is required. If the deletion is successful, it
+ * will return a 200 status with a success message and the deleted history quote. If an error occurs
+ */
 const deleteHistoryquotes = async (req, res) => {
     try {
         const historyquotesId = req.params.id;
