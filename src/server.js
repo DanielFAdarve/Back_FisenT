@@ -14,6 +14,10 @@ dotenv.config();
 const port = process.env.PORT || 3000;
 
 
+/**
+ * The function `startServer` establishes a connection to a database using Sequelize, synchronizes
+ * tables, and starts a server listening on a specified port.
+ */
 async function startServer() {
   try {
     await sequelize.authenticate(); // Verifica conexión
