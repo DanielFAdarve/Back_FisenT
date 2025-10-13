@@ -5,6 +5,14 @@ const { Quotes,Professional, StatusQuotes, Packages } = require('../models');
 
 class QuotesService {
 
+    /**
+     * The function `getAllQuotes` retrieves all quotes with associated professional, status, and
+     * package information, returning the data in a structured format or a message if no quotes are
+     * found.
+     * @returns The `getAllQuotes` function returns an array of objects containing the `id`,
+     * `id_estado_citas`, `id_profesional`, and `id_paquetes` properties of each quote. If there are no
+     * quotes registered, it returns the string 'No hay citas registradas'.
+     */
     async getAllQuotes() {
 
         let infoQuotes = await Quotes.findAll(
