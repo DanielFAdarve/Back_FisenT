@@ -1,10 +1,24 @@
 const Sequelize = require('sequelize');
+const dotenv = require('dotenv');
 const path = require('path');
 
-const sequelize = new Sequelize({
-  dialect: 'sqlite',
-  storage: path.join(__dirname, '../db/database.sqlite'),
-  logging: false
+dotenv.config();
+
+// const sequelize = new Sequelize({
+//   dialect: 'sqlite',
+//   storage: path.join(__dirname, '../db/database.sqlite'),
+//   logging: false
+// });
+
+const sequelize = new Sequelize(process.env.DATABASE_URL, {
+  dialect: 'postgres',
+  logging: false,
+  dialectOptions: {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false
+    }
+  }
 });
 
 // Importación de modelos

@@ -10,46 +10,44 @@ class Packages extends Model {
                     autoIncrement: true
                 },
                 id_pacientes: {
-                    type: DataTypes.STRING,
-                    allowNull: false
+                    type: DataTypes.INTEGER,
+                    allowNull: false,
+                    references: {
+                        model: 'pacientes',
+                        key: 'id',
+                    },
+                    onUpdate: 'CASCADE',
+                    onDelete: 'NO ACTION'
                 },
                 id_paquetes_atenciones: {
-                    type: DataTypes.STRING,
-                    allowNull: false
+                    type: DataTypes.INTEGER,
+                    allowNull: false,
+                    references: {
+                        model: 'atencion_paquetes',
+                        key: 'id',
+                    },
+                    onUpdate: 'CASCADE',
+                    onDelete: 'NO ACTION'
                 },
                 id_estado_citas: {
-                    type: DataTypes.STRING,
-                    allowNull: false
+                    type: DataTypes.INTEGER,
+                    allowNull: false,
+                    references: {
+                        model: 'estado_paquetes',
+                        key: 'id',
+                    },
+                    onUpdate: 'CASCADE',
+                    onDelete: 'NO ACTION'
                 }
-            }, {
-            sequelize,
-            modelName: 'Packages',
-            tableName: 'paquetes',
-            timestamps: false
-        }
+            },
+            {
+                sequelize,
+                modelName: 'Packages',
+                tableName: 'paquetes',
+                timestamps: false
+            }
         );
-
     }
-
 }
 
 module.exports = Packages;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
