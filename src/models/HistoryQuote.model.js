@@ -29,7 +29,8 @@ class HistoryQuote extends Model {
             sequelize,
             modelName: 'HistoryQuote',
             tableName: 'historia_cita',
-            timestamps: false
+            timestamps: false,
+            underscored: true
         }
         );
 

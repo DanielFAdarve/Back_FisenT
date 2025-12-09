@@ -21,7 +21,8 @@ class StatusPackages extends Model {
             sequelize,
             modelName: 'StatusPackages',
             tableName: 'estado_paquetes',
-            timestamps: false
+            timestamps: false,
+            underscored: true
         }
         );
 

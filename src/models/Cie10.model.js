@@ -21,7 +21,8 @@ class Cie10 extends Model {
             sequelize,
             modelName: 'Cie10',
             tableName: 'cie10',
-            timestamps: false
+            timestamps: false,
+            underscored: true
         }
         );
 

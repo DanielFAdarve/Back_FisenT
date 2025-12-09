@@ -24,7 +24,8 @@ class AttentionPackages extends Model {
             sequelize,
             modelName: 'AttentionPackages',
             tableName: 'atencion_paquetes',
-            timestamps: false
+            timestamps: false,
+            underscored: true
         }
         );
 

@@ -21,7 +21,8 @@ class StatusQuotes extends Model {
             sequelize,
             modelName: 'StatusQuotes',
             tableName: 'estado_citas',
-            timestamps: false
+            timestamps: false,
+            underscored: true
         }
         );
 

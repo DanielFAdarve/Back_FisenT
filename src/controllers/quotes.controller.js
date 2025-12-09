@@ -1,63 +1,87 @@
-const response = require('../models/Response.models')
+// const response = require('../models/Response.models');
+// const quotesService = require('../services/quotes.service');
+
+// module.exports = {
+ 
+//     async createQuote(req, res) {
+//         try {
+//             const quote = await quotesService.create(req.body);
+//             res.send(response.set(200, 'Cita creada', quote));
+//         } catch (err) {
+//             res.status(400).send(response.set(400, err.message));
+//         }
+//     },
+
+//     async getQuotesByPackage(req, res) {
+//         try {
+//             const qts = await quotesService.getByPackage(req.params.id);
+//             res.send(response.set(200, "Citas del paquete", qts));
+//         } catch (err) {
+//             res.status(400).send(response.set(500, err.message));
+//         }
+//     }
+// };
+
+// controllers/quotes.controller.js
+const response = require('../models/Response.models');
 const quotesService = require('../services/quotes.service');
 
-const getAllQuotes = async (req, res) => {
-    try {
-        const quotes = await quotesService.getAllQuotes();
-         res.status(200).send(response.set(200, 'Consultada la informacion de las citas',quotes));
-
-    } catch (error) {
-        res.status(400).send(response.set(error.status || 500, error.message || 'No hubo respuesta del servidor al obtener citas'));
-    }
-}
-
-
-const createQuotes = async (req, res) => {
-    try {
-        const quotesData = req.body;
-        const quotes = await quotesService.createQuote(quotesData);
-         res.status(200).send(response.set(200, 'Se creo la cita',quotes));
-
-    } catch (error) {
-        res.status(400).send(response.set(error.status || 500, error.message || 'No hubo respuesta del servidor al crear la cita'));
-    }
-}
-
-
-
-const updateQuotes = async (req, res) => {
-    try {
-        const quotesId = req.params.id;
-        if (!quotesId) {
-            return res.status(400).send(response.set(400, 'ID de cita es requerido'));
-        }
-        const quotesData = req.body;
-        const quotes = await quotesService.updateQuotes(quotesId,quotesData);
-         res.status(200).send(response.set(200, 'Se actualizo la cita',quotes));
-
-    } catch (error) {
-        res.status(400).send(response.set(error.status || 500, error.message || 'No hubo respuesta del servidor al actualizar cita'));
-    }
-}
-
-
-const deleteQuotes = async (req, res) => {
-    try {
-        const quotesId = req.params.id;
-        if (!quotesId) {
-            return res.status(400).send(response.set(400, 'ID de cita es requerido'));
-        }
-        const quotes = await quotesService.deleteQuotes(quotesId);
-         res.status(200).send(response.set(200, 'Se Elimino la cita',quotes));
-
-    } catch (error) {
-        res.status(400).send(response.set(error.status || 500, error.message || 'No hubo respuesta del servidor al eliminar cita'));
-    }
-}
-
 module.exports = {
-    getAllQuotes,
-    createQuotes,
-    updateQuotes,
-    deleteQuotes
-}
+
+    async createQuote(req, res) {
+        try {
+            const quote = await quotesService.create(req.body);
+            res.send(response.set(200, 'Cita creada', quote));
+        } catch (err) {
+            res.status(400).send(response.set(400, err.message));
+        }
+    },
+    
+    async getAllQuotes(req, res) {
+        try {
+            const qts = await quotesService.getAll();
+            res.send(response.set(200, "Citas ", qts));
+        } catch (err) {
+            res.status(400).send(response.set(500, err.message));
+        }
+    },
+    async getAllAttentionPackages(req, res) {
+        try {
+            const qts = await quotesService.getAllAttentionPackages();
+            res.send(response.set(200, "Paquetes de atenciones ", qts));
+        } catch (err) {
+            res.status(400).send(response.set(500, err.message));
+        }
+    },
+
+    async getQuotesByPackage(req, res) {
+        try {
+            const qts = await quotesService.getByPackage(req.params.id);
+            res.send(response.set(200, "Citas del paquete", qts));
+        } catch (err) {
+            res.status(400).send(response.set(500, err.message));
+        }
+    },
+
+    async getAvailability(req, res) {
+        try {
+            const id_prof = req.params.id;
+            const fecha = req.query.date;
+            if (!fecha) return res.status(400).send(response.set(400, 'Parámetro date es requerido (YYYY-MM-DD)'));
+            const list = await quotesService.getAvailability(id_prof, fecha);
+            res.send(response.set(200, 'Disponibilidad', list));
+        } catch (err) {
+            res.status(500).send(response.set(500, err.message));
+        }
+    },
+
+    async deleteQuote(req, res) {
+        try {
+            const id = req.params.id;
+            await quotesService.delete(id);
+            res.send(response.set(200, 'Cita eliminada'));
+        } catch (err) {
+            res.status(500).send(response.set(500, err.message));
+        }
+    }
+};

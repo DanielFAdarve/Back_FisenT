@@ -8,6 +8,8 @@ const packages = require('./routes/packages.route');
 const quotes = require('./routes/quotes.route');
 const appointment = require('./routes/appointment.route');
 const historyquotes = require('./routes/historyquote.route');
+const paymentsRoutes = require('./routes/payment.route');
+const professionalRoutes = require('./routes/professional.route');
 
 //Cargamos el swagger 
 const swaggerUi = require('swagger-ui-express');
@@ -47,9 +49,10 @@ app.use(errorHandler);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/auth', auth);
 app.use('/patient',patient);
-app.use('/appointment',appointment);
+
 app.use('/packages',packages);
 app.use('/quotes',quotes);
 app.use('/history',historyquotes);
-
+app.use('/payments', paymentsRoutes);
+app.use('/professionals', professionalRoutes);
 module.exports = app;

@@ -36,6 +36,7 @@ const Quotes = require('./Quotes.model');
 const StatusPackages = require('./StatusPackages.model');
 const StatusQuotes = require('./StatusQuotes.model');
 const User = require('./User.model');
+const Payment = require('./Payment.model');
 
 // Inicialización de modelos (retornando la instancia)
 const AttentionPackagesModel = AttentionPackages.initModel(sequelize);
@@ -48,18 +49,44 @@ const QuotesModel = Quotes.initModel(sequelize);
 const StatusPackagesModel = StatusPackages.initModel(sequelize);
 const StatusQuotesModel = StatusQuotes.initModel(sequelize);
 const UserModel = User.initModel(sequelize);
-
+const PaymentModel = Payment.initModel(sequelize);
 // Relaciones
-QuotesModel.belongsTo(ProfessionalModel, { foreignKey: 'id_profesional' });
+
+// PACIENTE → PAQUETES
+PatientModel.hasMany(PackagesModel, { foreignKey: 'id_pacientes' });
+PackagesModel.belongsTo(PatientModel, { foreignKey: 'id_pacientes', as: 'patient' });
+
+// CONFIGURACIÓN DE PAQUETES → PAQUETES
+AttentionPackagesModel.hasMany(PackagesModel, { foreignKey: 'id_paquetes_atenciones', as : 'packages'  });
+PackagesModel.belongsTo(AttentionPackagesModel, { foreignKey: 'id_paquetes_atenciones', as: 'attentionPackage' });
+
+// ESTADO → PAQUETES
+StatusPackagesModel.hasMany(PackagesModel, { foreignKey: 'id_estado_citas' });
+PackagesModel.belongsTo(StatusPackagesModel, { foreignKey: 'id_estado_citas', as: 'statusPackage' });
+
+// PAQUETES → CITAS
+PackagesModel.hasMany(QuotesModel, { foreignKey: 'id_paquetes' });
 QuotesModel.belongsTo(PackagesModel, { foreignKey: 'id_paquetes' });
+
+// PROFESIONAL → CITAS
+ProfessionalModel.hasMany(QuotesModel, { foreignKey: 'id_profesional' });
+QuotesModel.belongsTo(ProfessionalModel, { foreignKey: 'id_profesional' });
+
+// ESTADO DE CITAS → CITAS
+StatusQuotesModel.hasMany(QuotesModel, { foreignKey: 'id_estado_citas' });
 QuotesModel.belongsTo(StatusQuotesModel, { foreignKey: 'id_estado_citas' });
 
-PackagesModel.belongsTo(PatientModel, { foreignKey: 'id_pacientes', as: 'patient' });
-PackagesModel.belongsTo(AttentionPackagesModel, { foreignKey: 'id_paquetes_atenciones', as : 'attentionPackage' });
-PackagesModel.belongsTo(StatusPackagesModel, { foreignKey: 'id_estado_citas', as : 'statusPackage' });
+// CITA → HISTORIAL
+QuotesModel.hasMany(HistoryQuoteModel, { foreignKey: 'id_cita' });
+HistoryQuoteModel.belongsTo(QuotesModel, { foreignKey: 'id_cita', as: 'Quotes' });
 
-HistoryQuoteModel.belongsTo(QuotesModel, { foreignKey: 'id_cita', as :'Quotes' });
-HistoryQuoteModel.belongsTo(Cie10Model, { foreignKey: 'id_cie', as :'Cie10' });
+// CIE10 → HISTORIA
+Cie10Model.hasMany(HistoryQuoteModel, { foreignKey: 'id_cie' });
+HistoryQuoteModel.belongsTo(Cie10Model, { foreignKey: 'id_cie', as: 'Cie10' });
+
+//Pagos 
+PaymentModel.belongsTo(PackagesModel, { foreignKey: "id_paquete" });
+PaymentModel.belongsTo(QuotesModel, { foreignKey: "id_cita" });
 
 module.exports = {
   sequelize,
@@ -72,5 +99,6 @@ module.exports = {
   Quotes: QuotesModel,
   StatusPackages: StatusPackagesModel,
   StatusQuotes: StatusQuotesModel,
-  User: UserModel
+  User: UserModel,
+  Payment: PaymentModel
 };

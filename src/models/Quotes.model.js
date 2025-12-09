@@ -13,6 +13,19 @@ class Quotes extends Model {
                     type: DataTypes.DATEONLY,
                     allowNull: false
                 },
+                horario_inicio: {
+                    type: DataTypes.TIME,
+                    allowNull: false
+                },
+                horario_fin: {
+                    type: DataTypes.TIME,
+                    allowNull: false
+                },
+                pagado: {
+                    type: DataTypes.BOOLEAN,
+                    allowNull: false,
+                    defaultValue: false
+                },
                 numero_sesion: {
                     type: DataTypes.INTEGER,
                     allowNull: false
@@ -41,7 +54,8 @@ class Quotes extends Model {
             sequelize,
             modelName: 'Quotes',
             tableName: 'citas',
-            timestamps: false
+            timestamps: false,
+            underscored: true
         }
         );
 

@@ -17,7 +17,8 @@ class Professional extends Model {
             sequelize,
             modelName: 'Professional',
             tableName: 'profesional',
-            timestamps: false
+            timestamps: false,
+            underscored: true
         }
         );
 

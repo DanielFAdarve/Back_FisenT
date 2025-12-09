@@ -58,7 +58,8 @@ class Patient extends Model {
             sequelize,
             modelName: 'Patient',
             tableName: 'pacientes',
-            timestamps: false
+            timestamps: false,
+            underscored: true
         }
         );
 

@@ -44,7 +44,8 @@ class Packages extends Model {
                 sequelize,
                 modelName: 'Packages',
                 tableName: 'paquetes',
-                timestamps: false
+                timestamps: false,
+                underscored: true
             }
         );
     }

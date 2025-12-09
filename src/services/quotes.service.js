@@ -1,99 +1,140 @@
-//Citas service
+// const { Quotes, Packages, AttentionPackages, sequelize } = require('../models');
 
-const { Quotes,Professional, StatusQuotes, Packages } = require('../models');
+// module.exports = {
 
+//     async create(data) {
+//         if (!data.horario_inicio || !data.horario_fin)
+//             throw new Error('Horario de inicio y fin son obligatorios');
 
-class QuotesService {
+//         // Validación de colisión optimizada
+//         const existing = await Quotes.findAll({
+//             where: {
+//                 id_profesional: data.id_profesional,
+//                 fecha_agendamiento: data.fecha_agendamiento
+//             }
+//         });
 
-    /**
-     * The function `getAllQuotes` retrieves all quotes with associated professional, status, and
-     * package information, returning the data in a structured format or a message if no quotes are
-     * found.
-     * @returns The `getAllQuotes` function returns an array of objects containing the `id`,
-     * `id_estado_citas`, `id_profesional`, and `id_paquetes` properties of each quote. If there are no
-     * quotes registered, it returns the string 'No hay citas registradas'.
-     */
-    async getAllQuotes() {
+//         const startNew = new Date(`${data.fecha_agendamiento}T${data.horario_inicio}:00`);
+//         const endNew = new Date(`${data.fecha_agendamiento}T${data.horario_fin}:00`);
 
-        let infoQuotes = await Quotes.findAll(
-            {
-                include: [
-                    { model: Professional, as: 'Professional' },
-                    { model: StatusQuotes, as: 'StatusQuotes' },
-                    { model: Packages, as: 'Packages' },
-                ]
-            });
+//         for (const q of existing) {
+//             const startExist = new Date(`${q.fecha_agendamiento}T${q.horario_inicio}:00`);
+//             const endExist = new Date(`${q.fecha_agendamiento}T${q.horario_fin}:00`);
 
-        if (infoQuotes.length < 1) {
-            return 'No hay citas registradas';
-        }
+//             if (startNew < endExist && startExist < endNew) {
+//                 throw new Error('La cita colisiona con otra cita del profesional');
+//             }
+//         }
 
-        const data = infoQuotes.map((dataQuotes) => {
-            return {
-                id: dataQuotes.id,
-                id_estado_citas: dataQuotes.id_estado_citas,
-                id_profesional: dataQuotes.id_profesional,
-                id_paquetes: dataQuotes.id_paquetes,
+//         // Validar sesiones disponibles si usa paquete
+//         if (data.id_paquetes) {
+//             const paquete = await Packages.findByPk(
+//                 data.id_paquetes, { include: [AttentionPackages] }
+//             );
+
+//             if (!paquete) throw new Error('Paquete no encontrado');
+
+//             const used = await Quotes.count({ where: { id_paquetes: data.id_paquetes } });
+
+//             if (used >= paquete.AttentionPackages.cantidad_sesiones)
+//                 throw new Error('No hay sesiones disponibles en el paquete');
+
+//             data.numero_sesion = used + 1;
+//         }
+
+//         const created = await Quotes.create(data);
+
+//         return created;
+//     },
+
+//     async getByPackage(id_paquetes) {
+//         return await Quotes.findAll({ where: { id_paquetes } });
+//     },
+
+//     async getAvailability(id_profesional, fecha) {
+//         return await Quotes.findAll({
+//             where: { id_profesional, fecha_agendamiento: fecha }
+//         });
+//     },
+
+//     async delete(id) {
+//         return await Quotes.destroy({ where: { id } });
+//     }
+// };
+
+// services/quotes.service.js
+const { Quotes, Packages, AttentionPackages } = require('../models');
+
+module.exports = {
+
+    async create(data) {
+        // data: { fecha_agendamiento (YYYY-MM-DD), id_paquetes, id_profesional, horario_inicio, horario_fin, motivo, ... }
+        if (!data.horario_inicio || !data.horario_fin)
+            throw new Error('Horario de inicio y fin son obligatorios');
+
+        // Load existing quotes for professional + date (optimized)
+        const existing = await Quotes.findAll({
+            where: {
+                id_profesional: data.id_profesional,
+                fecha_agendamiento: data.fecha_agendamiento
             }
         });
 
-        return data;
-    }
+        const startNew = new Date(`${data.fecha_agendamiento}T${data.horario_inicio}:00`);
+        const endNew = new Date(`${data.fecha_agendamiento}T${data.horario_fin}:00`);
 
-   /**
-    * The function `createQuote` asynchronously creates a new quote with the provided data, throwing an
-    * error if required data is missing.
-    * @param data - The `data` parameter is an object that contains the following properties:
-    * @returns The `createQuote` function is returning the result of creating a new quote using the
-    * `Quotes.create(data)` method. This method likely creates a new quote record in a database or data
-    * store based on the provided `data` object. If the required data fields (`id_estado_citas`,
-    * `id_profesional`, `id_paquetes`, `fecha_agendamiento`) are not present in
-    */
-    async createQuote(data) {
-        if (!data.id_estado_citas || !data.id_profesional || !data.id_paquetes || !data.fecha_agendamiento) {
-            throw new Error('Faltan datos requeridos para crear la cita');
+        for (const q of existing) {
+            // if editing and same id, skip collision with itself: caller must handle
+            if (data.id && q.id === data.id) continue;
+
+            const startExist = new Date(`${q.fecha_agendamiento}T${q.horario_inicio}:00`);
+            const endExist = new Date(`${q.fecha_agendamiento}T${q.horario_fin}:00`);
+
+            if (startNew < endExist && startExist < endNew) {
+                throw new Error('La cita colisiona con otra cita del profesional');
+            }
         }
 
-        return await Quotes.create(data);
-    }
+        // If package present, validate sessions available
+        if (data.id_paquetes) {
+            const paquete = await Packages.findByPk(data.id_paquetes, { include: [{ model: AttentionPackages, as: 'attentionPackage' }] });
+            if (!paquete) throw new Error('Paquete no encontrado');
 
-   /**
-    * The function `updateQuotes` asynchronously updates a quote record in a database based on the
-    * provided ID and data.
-    * @param id - The `id` parameter is the unique identifier of the quote that you want to update in
-    * the database.
-    * @param data - The `data` parameter in the `updateQuotes` function likely refers to an object
-    * containing the new values that you want to update in the database record identified by the `id`.
-    * This object would typically include key-value pairs where the keys correspond to the fields in
-    * the database record that you want to update
-    * @returns the result of updating the quotes record with the provided data.
-    */
-    async updateQuotes(id, data) {
-        const QuotesRecord = await Quotes.findOne({ where: { id } });
-        if (!QuotesRecord) {
-            throw new Error('Cita no encontrada');
+            const used = await Quotes.count({ where: { id_paquetes: data.id_paquetes } });
+            const config = paquete.attentionPackage || (await paquete.getAttentionPackage());
+
+            if (!config) throw new Error('Configuración del paquete no encontrada');
+
+            if (used >= config.cantidad_sesiones) {
+                throw new Error('No hay sesiones disponibles en el paquete');
+            }
+
+            data.numero_sesion = used + 1;
         }
-        return await QuotesRecord.update(data);
 
+        const created = await Quotes.create(data);
+
+        return created;
+    },
+
+    async getAll() {
+        return await Quotes.findAll();
+    },
+    async getAllAttentionPackages() {
+        return await AttentionPackages.findAll();
+    },
+
+    async getByPackage(id_paquetes) {
+        return await Quotes.findAll({ where: { id_paquetes } });
+    },
+
+    async getAvailability(id_profesional, fecha) {
+        return await Quotes.findAll({
+            where: { id_profesional, fecha_agendamiento: fecha }
+        });
+    },
+
+    async delete(id) {
+        return await Quotes.destroy({ where: { id } });
     }
-
-    /**
-     * The function `deleteQuotes` asynchronously deletes a quote record based on the provided ID after
-     * checking its existence.
-     * @param id - The `id` parameter is the unique identifier of the quote that you want to delete
-     * from the database.
-     * @returns The `deleteQuotes` function is returning the result of the `destroy()` method called on
-     * the `QuotesRecord`. This method deletes the record from the database and returns a promise that
-     * resolves to the deleted record.
-     */
-    async deleteQuotes(id) {
-        const QuotesRecord = await Quotes.findOne({ where: { id } });
-        if (!QuotesRecord) {
-            throw new Error('Cita no encontrada');
-        }
-        return await QuotesRecord.destroy();
-    }
-
-}
-
-module.exports = new QuotesService();
+};
