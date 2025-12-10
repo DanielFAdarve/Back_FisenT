@@ -24,7 +24,8 @@ const app = express();
 const allowedOrigins = [
     'http://localhost:4200',
     'http://localhost:3000',
-    'http://fisencare.com'
+    'http://fisencare.com',
+    'https://danielfadarve.github.io'
   ];
   
 app.use(cors({
