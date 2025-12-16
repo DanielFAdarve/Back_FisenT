@@ -19,7 +19,7 @@ class Quotes extends Model {
                 },
                 horario_fin: {
                     type: DataTypes.TIME,
-                    allowNull: false
+                    allowNull: true
                 },
                 pagado: {
                     type: DataTypes.BOOLEAN,

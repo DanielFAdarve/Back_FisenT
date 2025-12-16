@@ -12,6 +12,7 @@ const { verifyToken } = require('../middlewares/auth.middleware');
 
 router.post('/create', packagesController.createPackage);
 router.get('/get-by-patient/:id', packagesController.getPackagesByPatient);
+router.get('/get-packages', packagesController.getAllPackages);
 router.get('/get/:id', packagesController.getPackageById);
 router.put('/close/:id', packagesController.closePackage);
 

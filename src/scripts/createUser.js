@@ -5,8 +5,8 @@ Sequelize ORM. Here's a breakdown of what it's doing: */
 (async () => {
   await sequelize.sync();
   const user = await User.create({
-    username: 'luiza',
-    password: 'luvaldes08',
+    username: 'Fisen',
+    password: 'Fisen2026',
     role: 'admin'
   });
   console.log('✅ Usuario creado:', user.username);

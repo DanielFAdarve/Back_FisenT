@@ -20,9 +20,10 @@ const port = process.env.PORT || 3000;
  */
 async function startServer() {
   try {
+    console.log("URL DB:",process.env.DATABASE_URL);
     await sequelize.authenticate(); // Verifica conexión
     await sequelize.sync();         // Crea tablas si no existen
-    // await sequelize.sync({ force: true }).then(() => {
+    // await sequelize.sync({ alter: true }).then(() => {
     // console.log('Base de datos actualizada (alter: true)');
     // });
 

@@ -115,7 +115,10 @@ module.exports = {
 
         return await Packages.create(data);
     },
-
+    
+    async getAll() {
+        return await AttentionPackages.findAll({});
+    },
     async getByPatient(id_pacientes) {
         return await Packages.findAll({
             where: { id_pacientes },

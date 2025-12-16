@@ -67,6 +67,17 @@ const response = require('../models/Response.models');
 const packagesService = require('../services/packages.service');
 
 module.exports = {
+
+    async getAllPackages(req, res) {
+        try {
+            const packages = await packagesService.getAll();
+            res.status(200).send(response.set(200, 'Consultada la informacion de los paquetes', packages));
+
+        } catch (error) {
+            res.status(400).send(response.set(error.status || 500, error.message || 'No hubo respuesta del servidor al obtener paquetes'));
+        }
+    },
+
     async createPackage(req, res) {
         try {
             const pkg = await packagesService.create(req.body);
