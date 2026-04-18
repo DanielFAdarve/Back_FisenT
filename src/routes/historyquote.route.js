@@ -7,6 +7,7 @@ const { verifyToken } = require('../middlewares/auth.middleware');
 
 router.post('/create', historyController.create);
 router.put('/update/:id', historyController.update);
+router.get('/export-pdf/:id', historyController.exportPdf);
 router.get('/get-by-quote/:id', historyController.getByQuote);
 
 module.exports = router;
