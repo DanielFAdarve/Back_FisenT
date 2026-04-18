@@ -31,6 +31,10 @@ class Patient extends Model {
                 telefono: DataTypes.STRING,
                 telefono_secundario: DataTypes.STRING,
                 email: DataTypes.STRING,
+                id_cie: {
+                    type: DataTypes.INTEGER,
+                    allowNull: true
+                },
                 fecha_nacimiento: {
                     type: DataTypes.DATEONLY,
                     allowNull: false

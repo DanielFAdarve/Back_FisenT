@@ -10,6 +10,7 @@ const appointment = require('./routes/appointment.route');
 const historyquotes = require('./routes/historyquote.route');
 const paymentsRoutes = require('./routes/payment.route');
 const professionalRoutes = require('./routes/professional.route');
+const cie10Routes = require('./routes/cie10.route');
 
 //Cargamos el swagger 
 const swaggerUi = require('swagger-ui-express');
@@ -18,6 +19,7 @@ const swaggerSpec = require('../swagger/swagger');
 const errorHandler = require('./middlewares/errorHandler.middleware');
 const cookieParser = require('cookie-parser');
 const auth = require('./routes/auth.route');
+const { verifyToken } = require('./middlewares/auth.middleware');
 const app = express();
 
 
@@ -50,11 +52,13 @@ app.use(errorHandler);
 //Cargar las rutas
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/auth', auth);
-app.use('/patient',patient);
 
-app.use('/packages',packages);
+app.use(verifyToken);
+app.use('/patient', patient);
+app.use('/packages', packages);
 app.use('/quotes',quotes);
 app.use('/history',historyquotes);
 app.use('/payments', paymentsRoutes);
 app.use('/professionals', professionalRoutes);
+app.use('/cie10', cie10Routes);
 module.exports = app;
