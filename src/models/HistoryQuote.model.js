@@ -13,6 +13,22 @@ class HistoryQuote extends Model {
                     type: DataTypes.INTEGER,
                     allowNull: false
                 },
+                fecha_evolucion: {
+                    type: DataTypes.DATEONLY,
+                    allowNull: true
+                },
+                subjetivo: {
+                    type: DataTypes.TEXT,
+                    allowNull: true
+                },
+                objetivo: {
+                    type: DataTypes.TEXT,
+                    allowNull: true
+                },
+                intervencion: {
+                    type: DataTypes.TEXT,
+                    allowNull: true
+                },
                 descripcion_estado_paciente: {
                     type: DataTypes.STRING(255),
                     allowNull: false

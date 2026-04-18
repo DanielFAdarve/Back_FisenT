@@ -1,118 +1,198 @@
-// /* The HistoryquotesService class provides methods for managing history quotes related to patient
-// appointments and medical codes. */
-// //Citas service
+const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
+const { HistoryQuote, Cie10, Quotes, Packages, Patient, sequelize } = require('../models');
 
-// const { HistoryQuote, Quotes, Cie10 } = require('../models');
+const ANTECEDENT_FIELDS = [
+    'antecedentes',
+    'antecedentes_personales',
+    'antecedentes_patologicos',
+    'antecedentes_quirurgicos',
+    'antecedentes_traumaticos',
+    'antecedentes_farmacologicos',
+    'antecedentes_familiares',
+    'antecedentes_sociales'
+];
 
+const validateQuoteAndDiagnosis = async (id_cita, id_cie, transaction) => {
+    const quote = await Quotes.findByPk(id_cita, { transaction });
+    if (!quote) throw new Error('La cita asociada no existe');
 
-// class HistoryquotesService {
-//     /**
-//      * The function `getAllHistoryquotes` retrieves all history quotes including associated quotes and
-//      * Cie10 codes, returning relevant data if available.
-//      * @returns The `getAllHistoryquotes` function returns an array of objects containing information about
-//      * history quotes. Each object includes the following properties: `id`, `id_cita`, `id_cie`,
-//      * `estado_paciente`, and `recomendaciones`. If there are no history quotes found, it returns the
-//      * string 'No hay historia registrada'.
-//      */
+    const cie = await Cie10.findByPk(id_cie, { transaction });
+    if (!cie) throw new Error('El código CIE10 no existe');
+};
 
-//     async getAllHistoryquotes() {
+const syncPatientAntecedentsFromHistory = async (id_cita, data, transaction) => {
+    const payload = {};
 
-//         let infoHistoryquotes = await HistoryQuote.findAll(
-//             {
-//                 include: [
-//                     { model: Quotes, as: 'Quotes' },
-//                     { model: Cie10, as: 'Cie10' },
-//                 ]
-//             });
+    for (const key of ANTECEDENT_FIELDS) {
+        if (Object.prototype.hasOwnProperty.call(data, key)) {
+            payload[key] = data[key];
+        }
+    }
 
-//         if (infoHistoryquotes.length < 1) {
-//             return 'No hay historia registrada';
-//         }
+    if (Object.keys(payload).length === 0) return;
 
-//         const data = infoHistoryquotes.map((dataHistoryquotes) => {
-//             return {
-//                 id: dataHistoryquotes.id,
-//                 id_cita: dataHistoryquotes.id_cita,
-//                 id_cie: dataHistoryquotes.id_cie,
-//                 estado_paciente: dataHistoryquotes.descripcion_estado_paciente,
-//                 recomendaciones: dataHistoryquotes.recomendaciones,
-//                 //Preguntar si la descripción del estado paciente y recomendaciones deben estar acá?
-//             }
-//         });
+    const quote = await Quotes.findByPk(id_cita, {
+        include: [{ model: Packages, include: [{ model: Patient, as: 'patient' }] }],
+        transaction
+    });
 
-//         return data;
-//     }
+    const patient = quote?.Package?.patient;
+    if (!patient) return;
 
-//     /**
-//      * The function `createHistoryquotes` asynchronously creates a history quote record with the provided
-//      * data, throwing an error if required data is missing.
-//      * @param data - The `data` parameter in the `createHistoryquotes` function likely contains
-//      * information needed to create a new history quote. This data may include fields such as `id_cita`
-//      * and `id_cie`, which are required for creating the history quote. If any of these required fields
-//      * are missing in
-//      * @returns The `createHistoryquotes` function is returning the result of the
-//      * `HistoryQuote.create(data)` function call. This function is creating a new history quote record in
-//      * the database based on the provided `data` object. The function is using `async/await` syntax to
-//      * handle asynchronous operations and ensure that the result of the `HistoryQuote.create(data)` call
-//      * is returned once it is resolved.
-//      */
-//     async createHistoryquotes(data) {
-//         if (!data.id_cita || !data.id_cie) {
-//             throw new Error('Faltan datos requeridos para crear la historia');
-//         }
+    await patient.update(payload, { transaction });
+};
 
-//         return await HistoryQuote.create(data);
-//     }
+const buildHistoryPdf = async (history) => {
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([595, 842]); // A4
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-//     /**
-//      * The function `updateHistoryquotes` updates a history quote record with the provided data if it
-//      * exists, otherwise throws an error.
-//      * @param id - The `id` parameter is used to specify the unique identifier of the history quote
-//      * record that you want to update. It is typically a numeric or alphanumeric value that uniquely
-//      * identifies the record in the database.
-//      * @param data - The `data` parameter in the `updateHistoryquotes` function likely represents the
-//      * new information that you want to update in the history quotes record with the specified `id`.
-//      * This data could include key-value pairs where the keys correspond to the fields in the history
-//      * quotes record that you want to update, and
-//      * @returns the result of updating the history quote record with the provided data.
-//      */
-//     async updateHistoryquotes(id, data) {
-//         const HistoryquotesRecord = await HistoryQuote.findOne({ where: { id } });
-//         if (!HistoryquotesRecord) {
-//             throw new Error('Historia no encontrada');
-//         }
-//         return await HistoryquotesRecord.update(data);
+    const { width, height } = page.getSize();
+    const margin = 40;
+    let y = height - margin;
 
-//     }
+    const drawTitle = (text) => {
+        page.drawText(text, { x: margin, y, size: 14, font: boldFont, color: rgb(0, 0, 0) });
+        y -= 24;
+    };
 
-//     /**
-//      * The function `deleteHistoryquotes` asynchronously deletes a history quote record based on the
-//      * provided ID.
-//      * @param id - The `id` parameter is the unique identifier of the history quote record that you want
-//      * to delete from the database. This function uses the `id` to find the specific history quote record
-//      * to be deleted.
-//      * @returns The `deleteHistoryquotes` function is returning the result of the `destroy` method called
-//      * on the `HistoryquotesRecord`. This method deletes the record from the database and returns a
-//      * promise that resolves to the deleted record.
-//      */
-//     async deleteHistoryquotes(id) {
-//         const HistoryquotesRecord = await HistoryQuote.findOne({ where: { id } });
-//         if (!HistoryquotesRecord) {
-//             throw new Error('Historia no encontrada');
-//         }
-//         return await HistoryquotesRecord.destroy();
-//     }
+    const drawLabelValue = (label, value) => {
+        page.drawText(`${label}: ${value || 'N/A'}`, { x: margin, y, size: 10.5, font, color: rgb(0, 0, 0) });
+        y -= 16;
+    };
 
-// }
+    const drawParagraph = (label, value) => {
+        page.drawText(`${label}:`, { x: margin, y, size: 11, font: boldFont, color: rgb(0, 0, 0) });
+        y -= 14;
 
-// module.exports = new HistoryquotesService();
+        const text = String(value || 'N/A');
+        const maxCharsPerLine = 95;
+        const words = text.split(' ');
+        let line = '';
 
+        for (const word of words) {
+            const candidate = line ? `${line} ${word}` : word;
+            if (candidate.length > maxCharsPerLine) {
+                page.drawText(line, { x: margin, y, size: 10, font, color: rgb(0, 0, 0) });
+                y -= 13;
+                line = word;
+            } else {
+                line = candidate;
+            }
+        }
 
-const { HistoryQuote, Cie10 } = require('../models');
+        if (line) {
+            page.drawText(line, { x: margin, y, size: 10, font, color: rgb(0, 0, 0) });
+            y -= 15;
+        }
+
+        y -= 4;
+    };
+
+    const quote = history.Quotes;
+    const pkg = quote?.Package;
+    const patient = pkg?.patient;
+    const ciePrincipal = history.Cie10;
+    const cieSecundario = pkg?.secondaryDiagnosis;
+
+    drawTitle('HISTORIA CLINICA FISIOTERAPEUTICA');
+    drawLabelValue('Paciente', patient ? `${patient.nombre} ${patient.apellido}` : 'N/A');
+    drawLabelValue('Documento', patient?.num_doc);
+    drawLabelValue('Fecha evolucion', history.fecha_evolucion || new Date().toISOString().slice(0, 10));
+    drawLabelValue('Fecha cita', quote?.fecha_agendamiento);
+    drawLabelValue('Diagnostico principal (CIE10)', ciePrincipal ? `${ciePrincipal.codigo} - ${ciePrincipal.descripcion}` : 'N/A');
+    drawLabelValue('Motivo de consulta (CIE10 secundario)', cieSecundario ? `${cieSecundario.codigo} - ${cieSecundario.descripcion}` : 'N/A');
+
+    y -= 8;
+
+    drawParagraph('Subjetivo', history.subjetivo);
+    drawParagraph('Objetivo', history.objetivo);
+    drawParagraph('Intervencion', history.intervencion);
+    drawParagraph('Estado del paciente', history.descripcion_estado_paciente);
+    drawParagraph('Recomendaciones', history.recomendaciones);
+
+    drawParagraph('Antecedentes personales', patient?.antecedentes_personales || patient?.antecedentes);
+    drawParagraph('Antecedentes patologicos', patient?.antecedentes_patologicos);
+    drawParagraph('Antecedentes quirurgicos', patient?.antecedentes_quirurgicos);
+    drawParagraph('Antecedentes traumaticos', patient?.antecedentes_traumaticos);
+    drawParagraph('Antecedentes farmacologicos', patient?.antecedentes_farmacologicos);
+    drawParagraph('Antecedentes familiares', patient?.antecedentes_familiares);
+    drawParagraph('Antecedentes sociales', patient?.antecedentes_sociales);
+
+    return Buffer.from(await pdfDoc.save());
+};
 
 module.exports = {
-    create(data) {
-        return HistoryQuote.create(data);
+    async create(data) {
+        if (!data.id_cita || !data.id_cie) {
+            throw new Error('id_cita e id_cie son obligatorios');
+        }
+
+        return sequelize.transaction(async (t) => {
+            await validateQuoteAndDiagnosis(data.id_cita, data.id_cie, t);
+
+            const existingHistory = await HistoryQuote.findOne({ where: { id_cita: data.id_cita }, transaction: t });
+            if (existingHistory) {
+                throw new Error('La cita ya tiene una evolución registrada');
+            }
+
+            const historyData = {
+                ...data,
+                fecha_evolucion: data.fecha_evolucion || new Date().toISOString().slice(0, 10)
+            };
+
+            const history = await HistoryQuote.create(historyData, { transaction: t });
+            await syncPatientAntecedentsFromHistory(data.id_cita, data, t);
+
+            return history;
+        });
+    },
+
+    async update(id, data) {
+        return sequelize.transaction(async (t) => {
+            const history = await HistoryQuote.findByPk(id, { transaction: t });
+            if (!history) {
+                throw new Error('Historia no encontrada');
+            }
+
+            const nextQuoteId = data.id_cita || history.id_cita;
+            const nextCieId = data.id_cie || history.id_cie;
+
+            await validateQuoteAndDiagnosis(nextQuoteId, nextCieId, t);
+
+            await history.update(data, { transaction: t });
+            await syncPatientAntecedentsFromHistory(nextQuoteId, data, t);
+
+            return history;
+        });
+    },
+
+    async exportPdf(id) {
+        const history = await HistoryQuote.findByPk(id, {
+            include: [
+                { model: Cie10, as: 'Cie10' },
+                {
+                    model: Quotes,
+                    as: 'Quotes',
+                    include: [
+                        {
+                            model: Packages,
+                            include: [
+                                { model: Patient, as: 'patient' },
+                                { model: Cie10, as: 'secondaryDiagnosis' }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        });
+
+        if (!history) {
+            throw new Error('Historia no encontrada para exportar');
+        }
+
+        return buildHistoryPdf(history);
     },
 
     getByQuote(id_cita) {
@@ -122,5 +202,3 @@ module.exports = {
         });
     }
 };
-
-
