@@ -7,6 +7,7 @@ const { verifyToken } = require('../middlewares/auth.middleware');
 
 router.get('/', paymentController.getAll);
 router.get('/package-summary/:id', paymentController.getPackageSummary);
+router.get('/package-all-summary/:id', paymentController.getAllPaymentsForPackage);
 router.get('/:id', paymentController.getById);
 router.post('/', paymentController.createPayment);
 router.put('/:id', paymentController.updatePayment);
