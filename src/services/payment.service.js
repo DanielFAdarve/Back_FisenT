@@ -36,6 +36,29 @@ const getPackagePaymentSummary = async (id_paquete, transaction = null) => {
     total_abonado: totalAbonado,
     saldo_pendiente: saldoPendiente,
     estado_pago: estadoPago,
+    cantidad_abonos: payments.length
+  };
+};
+
+const createPayment = async (data) => {
+  return await sequelize.transaction(async (t) => {
+    if (!data.valor || Number(data.valor) <= 0 || !data.metodo_pago) {
+      throw new Error('Valor (mayor a 0) y metodo_pago son obligatorios');
+    }
+
+    const paymentType = data.tipo ?? (data.id_cita ? 'cita' : 'paquete');
+
+    if (paymentType === 'paquete' && !data.id_paquete) {
+      throw new Error('Para pagos de paquete debe enviar id_paquete');
+    }
+
+    if (paymentType === 'cita' && !data.id_cita) {
+      throw new Error('Para pagos de cita debe enviar id_cita');
+    }
+
+    if (data.id_paquete) {
+      const summary = await getPackagePaymentSummary(data.id_paquete, t);
+
     cantidad_abonos: payments.length,
   };
 };

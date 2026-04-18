@@ -10,6 +10,7 @@ const appointment = require('./routes/appointment.route');
 const historyquotes = require('./routes/historyquote.route');
 const paymentsRoutes = require('./routes/payment.route');
 const professionalRoutes = require('./routes/professional.route');
+const cie10Routes = require('./routes/cie10.route');
 
 //Cargamos el swagger 
 const swaggerUi = require('swagger-ui-express');
@@ -59,4 +60,5 @@ app.use('/quotes',quotes);
 app.use('/history',historyquotes);
 app.use('/payments', paymentsRoutes);
 app.use('/professionals', professionalRoutes);
+app.use('/cie10', cie10Routes);
 module.exports = app;
