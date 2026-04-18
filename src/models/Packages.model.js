@@ -29,6 +29,28 @@ class Packages extends Model {
                     onUpdate: 'CASCADE',
                     onDelete: 'NO ACTION'
                 },
+
+                id_profesional: {
+                    type: DataTypes.INTEGER,
+                    allowNull: true,
+                    references: {
+                        model: 'profesional',
+                        key: 'id'
+                    },
+                    onUpdate: 'CASCADE',
+                    onDelete: 'SET NULL'
+                },
+
+                id_cie_secundario: {
+                    type: DataTypes.INTEGER,
+                    allowNull: true,
+                    references: {
+                        model: 'cie10',
+                        key: 'id'
+                    },
+                    onUpdate: 'CASCADE',
+                    onDelete: 'SET NULL'
+                },
                 id_estado_citas: {
                     type: DataTypes.INTEGER,
                     allowNull: false,
