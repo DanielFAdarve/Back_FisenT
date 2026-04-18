@@ -52,6 +52,10 @@ const UserModel = User.initModel(sequelize);
 const PaymentModel = Payment.initModel(sequelize);
 // Relaciones
 
+// CIE10 → PACIENTE (diagnóstico principal)
+Cie10Model.hasMany(PatientModel, { foreignKey: 'id_cie', as: 'primaryDiagnosedPatients' });
+PatientModel.belongsTo(Cie10Model, { foreignKey: 'id_cie', as: 'diagnosis' });
+
 // PACIENTE → PAQUETES
 PatientModel.hasMany(PackagesModel, { foreignKey: 'id_pacientes' });
 PackagesModel.belongsTo(PatientModel, { foreignKey: 'id_pacientes', as: 'patient' });
@@ -64,9 +68,17 @@ PackagesModel.belongsTo(AttentionPackagesModel, { foreignKey: 'id_paquetes_atenc
 StatusPackagesModel.hasMany(PackagesModel, { foreignKey: 'id_estado_citas' });
 PackagesModel.belongsTo(StatusPackagesModel, { foreignKey: 'id_estado_citas', as: 'statusPackage' });
 
+// CIE10 → PAQUETES (motivo secundario de consulta)
+Cie10Model.hasMany(PackagesModel, { foreignKey: 'id_cie_secundario', as: 'secondaryReasonPackages' });
+PackagesModel.belongsTo(Cie10Model, { foreignKey: 'id_cie_secundario', as: 'secondaryDiagnosis' });
+
 // PAQUETES → CITAS
 PackagesModel.hasMany(QuotesModel, { foreignKey: 'id_paquetes' });
 QuotesModel.belongsTo(PackagesModel, { foreignKey: 'id_paquetes' });
+
+// PROFESIONAL → PAQUETES
+ProfessionalModel.hasMany(PackagesModel, { foreignKey: 'id_profesional' });
+PackagesModel.belongsTo(ProfessionalModel, { foreignKey: 'id_profesional', as: 'professional' });
 
 // PROFESIONAL → CITAS
 ProfessionalModel.hasMany(QuotesModel, { foreignKey: 'id_profesional' });

@@ -18,6 +18,7 @@ const swaggerSpec = require('../swagger/swagger');
 const errorHandler = require('./middlewares/errorHandler.middleware');
 const cookieParser = require('cookie-parser');
 const auth = require('./routes/auth.route');
+const { verifyToken } = require('./middlewares/auth.middleware');
 const app = express();
 
 
@@ -50,9 +51,10 @@ app.use(errorHandler);
 //Cargar las rutas
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/auth', auth);
-app.use('/patient',patient);
 
-app.use('/packages',packages);
+app.use(verifyToken);
+app.use('/patient', patient);
+app.use('/packages', packages);
 app.use('/quotes',quotes);
 app.use('/history',historyquotes);
 app.use('/payments', paymentsRoutes);
