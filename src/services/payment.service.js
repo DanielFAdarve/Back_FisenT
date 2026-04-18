@@ -59,6 +59,58 @@ const createPayment = async (data) => {
     if (data.id_paquete) {
       const summary = await getPackagePaymentSummary(data.id_paquete, t);
 
+
+  if (!pkg) {
+    throw new Error('Paquete no encontrado');
+  }
+
+  const config = pkg.attentionPackage || (await pkg.getAttentionPackage({ transaction }));
+  const totalPaquete = Number(config?.valor || 0);
+
+  const payments = await Payment.findAll({
+    where: { id_paquete, tipo: 'paquete' },
+    transaction
+  });
+
+  const totalAbonado = sumPaymentValues(payments);
+  const saldoPendiente = Math.max(totalPaquete - totalAbonado, 0);
+
+  let estadoPago = 'pendiente';
+  if (totalPaquete > 0 && totalAbonado >= totalPaquete) {
+    estadoPago = 'pagado';
+  } else if (totalAbonado > 0) {
+    estadoPago = 'abonado';
+  }
+
+  return {
+    id_paquete,
+    total_paquete: totalPaquete,
+    total_abonado: totalAbonado,
+    saldo_pendiente: saldoPendiente,
+    estado_pago: estadoPago,
+    cantidad_abonos: payments.length
+  };
+};
+
+const createPayment = async (data) => {
+  return await sequelize.transaction(async (t) => {
+    if (!data.valor || Number(data.valor) <= 0 || !data.metodo_pago) {
+      throw new Error('Valor (mayor a 0) y metodo_pago son obligatorios');
+    }
+
+    const paymentType = data.tipo ?? (data.id_cita ? 'cita' : 'paquete');
+
+    if (paymentType === 'paquete' && !data.id_paquete) {
+      throw new Error('Para pagos de paquete debe enviar id_paquete');
+    }
+
+    if (paymentType === 'cita' && !data.id_cita) {
+      throw new Error('Para pagos de cita debe enviar id_cita');
+    }
+
+    if (data.id_paquete) {
+      const summary = await getPackagePaymentSummary(data.id_paquete, t);
+
     cantidad_abonos: payments.length,
   };
 };

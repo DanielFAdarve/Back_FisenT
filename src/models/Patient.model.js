@@ -57,6 +57,13 @@ class Patient extends Model {
                     type: DataTypes.STRING,
                     allowNull: false
                 },
+                antecedentes_personales: DataTypes.TEXT,
+                antecedentes_patologicos: DataTypes.TEXT,
+                antecedentes_quirurgicos: DataTypes.TEXT,
+                antecedentes_traumaticos: DataTypes.TEXT,
+                antecedentes_farmacologicos: DataTypes.TEXT,
+                antecedentes_familiares: DataTypes.TEXT,
+                antecedentes_sociales: DataTypes.TEXT,
                 estado: DataTypes.BOOLEAN,
             }, {
             sequelize,

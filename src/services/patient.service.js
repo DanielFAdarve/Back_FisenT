@@ -20,6 +20,12 @@ const createPatient = async (data) => {
 
   await ensureDiagnosisExists(data.id_cie, 'principal');
 
+  if (!data.antecedentes) {
+    data.antecedentes = data.antecedentes_personales || 'Sin antecedentes reportados';
+  }
+
+  await ensureDiagnosisExists(data.id_cie, 'principal');
+
   return await Patient.create(data);
 };
 
@@ -46,6 +52,10 @@ const getPatientByDocumentNumber = async (num_doc) => {
 
 const updatePatient = async (id, data) => {
   await ensureDiagnosisExists(data.id_cie, 'principal');
+
+  if (data.antecedentes_personales && !data.antecedentes) {
+    data.antecedentes = data.antecedentes_personales;
+  }
 
   const [updated] = await Patient.update(data, { where: { id } });
   return updated
