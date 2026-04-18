@@ -24,6 +24,8 @@ const createPatient = async (data) => {
     data.antecedentes = data.antecedentes_personales || 'Sin antecedentes reportados';
   }
 
+  await ensureDiagnosisExists(data.id_cie, 'principal');
+
   return await Patient.create(data);
 };
 

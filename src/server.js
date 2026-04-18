@@ -23,9 +23,9 @@ async function startServer() {
     console.log("URL DB:",process.env.DATABASE_URL);
     await sequelize.authenticate(); // Verifica conexión
     await sequelize.sync();         // Crea tablas si no existen
-    // await sequelize.sync({ alter: true }).then(() => {
-    // console.log('Base de datos actualizada (alter: true)');
-    // });
+  // await sequelize.sync({ alter: true }).then(() => {
+  //   console.log('Base de datos actualizada (alter: true)');
+  //   });
 
 
     console.log('✅ Conexión establecida y tablas sincronizadas.');
