@@ -28,6 +28,15 @@ const getPackageSummary = async (req, res) => {
   }
 };
 
+const getAllPaymentsForPackage = async (req, res) => {
+  try {
+    const result = await paymentService.getAllPaymentsForPackage(req.params.id);
+    res.send(response.set(200, 'Resumen de pagos del paquete', result));
+  } catch (e) {
+    res.status(500).send(response.set(500, e.message));
+  }
+};
+
 const createPayment = async (req, res) => {
   try {
     const result = await paymentService.createPayment(req.body);
@@ -55,4 +64,4 @@ const deletePayment = async (req, res) => {
   }
 };
 
-module.exports = { getAll, getById, getPackageSummary, createPayment, updatePayment, deletePayment };
+module.exports = { getAll, getById, getPackageSummary,getAllPaymentsForPackage, createPayment, updatePayment, deletePayment };

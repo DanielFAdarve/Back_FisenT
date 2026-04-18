@@ -36,7 +36,46 @@ const getPackagePaymentSummary = async (id_paquete, transaction = null) => {
     total_abonado: totalAbonado,
     saldo_pendiente: saldoPendiente,
     estado_pago: estadoPago,
-    cantidad_abonos: payments.length
+    cantidad_abonos: payments.length,
+  };
+};
+
+const getAllPaymentsForPackage = async (id_paquete, transaction = null) => {
+  const pkg = await Packages.findByPk(id_paquete, {
+    include: [{ model: AttentionPackages, as: 'attentionPackage' }],
+    transaction
+  });
+
+  if (!pkg) {
+    throw new Error('Paquete no encontrado');
+  }
+
+  const config = pkg.attentionPackage || (await pkg.getAttentionPackage({ transaction }));
+  const totalPaquete = Number(config?.valor || 0);
+
+  const payments = await Payment.findAll({
+    where: { id_paquete, tipo: 'paquete' },
+    transaction
+  });
+
+  const totalAbonado = sumPaymentValues(payments);
+  const saldoPendiente = Math.max(totalPaquete - totalAbonado, 0);
+
+  let estadoPago = 'pendiente';
+  if (totalPaquete > 0 && totalAbonado >= totalPaquete) {
+    estadoPago = 'pagado';
+  } else if (totalAbonado > 0) {
+    estadoPago = 'abonado';
+  }
+
+  return {
+    id_paquete,
+    total_paquete: totalPaquete,
+    total_abonado: totalAbonado,
+    saldo_pendiente: saldoPendiente,
+    estado_pago: estadoPago,
+    cantidad_abonos: payments.length,
+    pagos: payments
   };
 };
 
@@ -106,4 +145,4 @@ const updatePayment = async (id, data) => {
 const deletePayment = async (id) =>
   Payment.destroy({ where: { id } });
 
-module.exports = { createPayment, getAll, getById, getPackageSummary, updatePayment, deletePayment };
+module.exports = { createPayment, getAll, getById, getPackageSummary,getAllPaymentsForPackage, updatePayment, deletePayment };
