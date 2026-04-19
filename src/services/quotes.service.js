@@ -1,4 +1,4 @@
-const { Quotes, Packages, AttentionPackages } = require('../models');
+const { Quotes, Packages, AttentionPackages, Patient, Professional, StatusQuotes } = require('../models');
 
 module.exports = {
 
@@ -60,7 +60,31 @@ module.exports = {
     },
 
     async getAll() {
-        return await Quotes.findAll();
+        return await Quotes.findAll({
+            include: [
+                {
+                    model: Packages,
+                    as: 'package',
+                    include: [
+                        {
+                            model: Patient,
+                            as: 'patient',
+                            attributes: ['nombre', 'apellido']
+                        }
+                    ]
+                },
+                {
+                    model: Professional,
+                    as: 'professional',
+                    attributes: ['nombre']
+                },
+                {
+                    model: StatusQuotes,
+                    as: 'status',
+                    attributes: ['nombre']
+                }
+            ]
+        });
     },
     async getAllAttentionPackages() {
         return await AttentionPackages.findAll();

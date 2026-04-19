@@ -74,7 +74,7 @@ PackagesModel.belongsTo(Cie10Model, { foreignKey: 'id_cie_secundario', as: 'seco
 
 // PAQUETES → CITAS
 PackagesModel.hasMany(QuotesModel, { foreignKey: 'id_paquetes' });
-QuotesModel.belongsTo(PackagesModel, { foreignKey: 'id_paquetes' });
+QuotesModel.belongsTo(PackagesModel, { foreignKey: 'id_paquetes', as: 'package' });
 
 // PROFESIONAL → PAQUETES
 ProfessionalModel.hasMany(PackagesModel, { foreignKey: 'id_profesional' });
@@ -82,11 +82,11 @@ PackagesModel.belongsTo(ProfessionalModel, { foreignKey: 'id_profesional', as: '
 
 // PROFESIONAL → CITAS
 ProfessionalModel.hasMany(QuotesModel, { foreignKey: 'id_profesional' });
-QuotesModel.belongsTo(ProfessionalModel, { foreignKey: 'id_profesional' });
+QuotesModel.belongsTo(ProfessionalModel, { foreignKey: 'id_profesional', as: 'professional'});
 
 // ESTADO DE CITAS → CITAS
 StatusQuotesModel.hasMany(QuotesModel, { foreignKey: 'id_estado_citas' });
-QuotesModel.belongsTo(StatusQuotesModel, { foreignKey: 'id_estado_citas' });
+QuotesModel.belongsTo(StatusQuotesModel, { foreignKey: 'id_estado_citas' , as: 'status'});
 
 // CITA → HISTORIAL
 QuotesModel.hasMany(HistoryQuoteModel, { foreignKey: 'id_cita' });

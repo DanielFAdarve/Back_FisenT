@@ -2,7 +2,7 @@
 // const quotesService = require('../services/quotes.service');
 
 // module.exports = {
- 
+
 //     async createQuote(req, res) {
 //         try {
 //             const quote = await quotesService.create(req.body);
@@ -36,14 +36,42 @@ module.exports = {
             res.status(400).send(response.set(400, err.message));
         }
     },
-    
     async getAllQuotes(req, res) {
         try {
             const qts = await quotesService.getAll();
-            res.send(response.set(200, "Citas ", qts));
+
+            const result = qts.map(q => {
+                const pack = q.package || {};
+                const patient = pack.patient || {};
+                const professional = q.professional || {};
+                const status = q.status || {};
+
+                return {
+                    id: q.id,
+                    fecha: q.fecha_agendamiento,
+                    hora_inicio: q.horario_inicio,
+                    hora_fin: q.horario_fin,
+                    numero_sesion: q.numero_sesion,
+                    pagado: q.pagado,
+                    motivo: q.motivo,
+
+                    // 🔹 PACIENTE
+                    paciente: `${patient.nombre || ''} ${patient.apellido || ''}`.trim(),
+
+                    // 🔹 PROFESIONAL
+                    profesional: professional.nombre || null,
+
+                    // 🔹 ESTADO
+                    estado: status.nombre || null
+                };
+            });
+
+            res.send(response.set(200, "Citas", result));
+
         } catch (err) {
             res.status(400).send(response.set(500, err.message));
         }
+
     },
     async getAllAttentionPackages(req, res) {
         try {

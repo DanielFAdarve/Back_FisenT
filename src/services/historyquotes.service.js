@@ -287,86 +287,6 @@ const buildHistoryPdf = async (history) => {
 
     return Buffer.from(await pdfDoc.save());
 };
-// const buildHistoryPdf = async (history) => {
-//     const pdfDoc = await PDFDocument.create();
-//     const page = pdfDoc.addPage([595, 842]); // A4
-//     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-//     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-//     const { width, height } = page.getSize();
-//     const margin = 40;
-//     let y = height - margin;
-
-//     const drawTitle = (text) => {
-//         page.drawText(text, { x: margin, y, size: 14, font: boldFont, color: rgb(0, 0, 0) });
-//         y -= 24;
-//     };
-
-//     const drawLabelValue = (label, value) => {
-//         page.drawText(`${label}: ${value || 'N/A'}`, { x: margin, y, size: 10.5, font, color: rgb(0, 0, 0) });
-//         y -= 16;
-//     };
-
-//     const drawParagraph = (label, value) => {
-//         page.drawText(`${label}:`, { x: margin, y, size: 11, font: boldFont, color: rgb(0, 0, 0) });
-//         y -= 14;
-
-//         const text = String(value || 'N/A');
-//         const maxCharsPerLine = 95;
-//         const words = text.split(' ');
-//         let line = '';
-
-//         for (const word of words) {
-//             const candidate = line ? `${line} ${word}` : word;
-//             if (candidate.length > maxCharsPerLine) {
-//                 page.drawText(line, { x: margin, y, size: 10, font, color: rgb(0, 0, 0) });
-//                 y -= 13;
-//                 line = word;
-//             } else {
-//                 line = candidate;
-//             }
-//         }
-
-//         if (line) {
-//             page.drawText(line, { x: margin, y, size: 10, font, color: rgb(0, 0, 0) });
-//             y -= 15;
-//         }
-
-//         y -= 4;
-//     };
-
-//     const quote = history.Quotes;
-//     const pkg = quote?.Package;
-//     const patient = pkg?.patient;
-//     const ciePrincipal = history.Cie10;
-//     const cieSecundario = pkg?.secondaryDiagnosis;
-
-//     drawTitle('HISTORIA CLINICA FISIOTERAPEUTICA');
-//     drawLabelValue('Paciente', patient ? `${patient.nombre} ${patient.apellido}` : 'N/A');
-//     drawLabelValue('Documento', patient?.num_doc);
-//     drawLabelValue('Fecha evolucion', history.fecha_evolucion || new Date().toISOString().slice(0, 10));
-//     drawLabelValue('Fecha cita', quote?.fecha_agendamiento);
-//     drawLabelValue('Diagnostico principal (CIE10)', ciePrincipal ? `${ciePrincipal.codigo} - ${ciePrincipal.descripcion}` : 'N/A');
-//     drawLabelValue('Motivo de consulta (CIE10 secundario)', cieSecundario ? `${cieSecundario.codigo} - ${cieSecundario.descripcion}` : 'N/A');
-
-//     y -= 8;
-
-//     drawParagraph('Subjetivo', history.subjetivo);
-//     drawParagraph('Objetivo', history.objetivo);
-//     drawParagraph('Intervencion', history.intervencion);
-//     drawParagraph('Estado del paciente', history.descripcion_estado_paciente);
-//     drawParagraph('Recomendaciones', history.recomendaciones);
-
-//     drawParagraph('Antecedentes personales', patient?.antecedentes_personales || patient?.antecedentes);
-//     drawParagraph('Antecedentes patologicos', patient?.antecedentes_patologicos);
-//     drawParagraph('Antecedentes quirurgicos', patient?.antecedentes_quirurgicos);
-//     drawParagraph('Antecedentes traumaticos', patient?.antecedentes_traumaticos);
-//     drawParagraph('Antecedentes farmacologicos', patient?.antecedentes_farmacologicos);
-//     drawParagraph('Antecedentes familiares', patient?.antecedentes_familiares);
-//     drawParagraph('Antecedentes sociales', patient?.antecedentes_sociales);
-
-//     return Buffer.from(await pdfDoc.save());
-// };
 
 module.exports = {
     async create(data) {
@@ -466,10 +386,64 @@ module.exports = {
         return buildHistoryPdf(history);
     },
 
+    // getByQuote(id_cita) {
+    //     return HistoryQuote.findAll({
+    //         where: { id_cita },
+    //         include: [ {
+    //             model: Cie10,
+    //             as: 'Cie10'
+    //         }]
+    //     });
+    // }
     getByQuote(id_cita) {
         return HistoryQuote.findAll({
             where: { id_cita },
-            include: [Cie10]
+            include: [
+                {
+                    model: Cie10,
+                    as: 'Cie10'
+                },
+                {
+                    model: Quotes,
+                    as: 'Quotes',
+                    include: [
+                        {
+                            model: Packages,
+                            include: [
+                                {
+                                    model: Patient,
+                                    as: 'patient',
+                                    attributes: [
+                                        'tipo_doc',
+                                        'num_doc',
+                                        'telefono',
+                                        'telefono_secundario',
+                                        'email',
+                                        'eps',
+                                        'ocupacion',
+                                        'modalidad_deportiva',
+                                        'antecedentes',
+                                        'antecedentes_personales',
+                                        'antecedentes_patologicos',
+                                        'antecedentes_quirurgicos',
+                                        'antecedentes_traumaticos',
+                                        'antecedentes_farmacologicos',
+                                        'antecedentes_familiares',
+                                        'antecedentes_sociales'
+                                    ],
+                                    include: [
+                                        {
+                                            model: Cie10,
+                                            as: 'diagnosis', // ESTE ES CLAVE
+                                            attributes: ['id', 'codigo', 'descripcion'] // ajusta a tu modelo
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
         });
     }
 };
