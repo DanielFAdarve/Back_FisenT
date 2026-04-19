@@ -1,5 +1,6 @@
 const response = require('../models/Response.models');
 const historyService = require('../services/historyquotes.service');
+const docService = require('../services/doc.service')
 
 module.exports = {
     async create(req, res) {
@@ -23,10 +24,24 @@ module.exports = {
 
     async exportPdf(req, res) {
         try {
-            const pdfBuffer = await historyService.exportPdf(req.params.id);
-            res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', `attachment; filename="historia-${req.params.id}.pdf"`);
-            return res.send(pdfBuffer);
+            const history = await historyService.getHistoryData(req.params.id);
+            const docFile = await docService.buildHistoryDocx(history);
+            // const pdfBuffer = await docService.convertToPdf(docFile);
+            res.setHeader(
+                'Content-Type',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            );
+            res.setHeader(
+                'Content-Disposition',
+                'attachment; filename=historia.docx'
+            );
+            // res.setHeader('Content-Type', 'application/pdf');
+            // res.setHeader('Content-Disposition', `attachment; filename="historia-${req.params.id}.pdf"`);
+
+            return res.send(docFile);
+            // return res.send(response.set(200, 'Historial', historial));
+
+
         } catch (e) {
             res.status(400).send(response.set(500, e.message));
         }

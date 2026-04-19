@@ -44,84 +44,329 @@ const syncPatientAntecedentsFromHistory = async (id_cita, data, transaction) => 
 
 const buildHistoryPdf = async (history) => {
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595, 842]); // A4
+    let page = pdfDoc.addPage([595, 842]); // A4
+
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    const { width, height } = page.getSize();
     const margin = 40;
-    let y = height - margin;
+    const pageWidth = page.getWidth();
+    const pageHeight = page.getHeight();
 
+    let y = pageHeight - margin;
+
+    // 🧠 CONTROL DE SALTO DE PÁGINA
+    const checkPageBreak = (space = 20) => {
+        if (y < margin + space) {
+            page = pdfDoc.addPage([595, 842]);
+            y = pageHeight - margin;
+        }
+    };
+
+    // 🧱 TÍTULO
     const drawTitle = (text) => {
-        page.drawText(text, { x: margin, y, size: 14, font: boldFont, color: rgb(0, 0, 0) });
-        y -= 24;
+        page.drawText(text.toUpperCase(), {
+            x: margin,
+            y,
+            size: 13,
+            font: bold
+        });
+        y -= 22;
     };
 
-    const drawLabelValue = (label, value) => {
-        page.drawText(`${label}: ${value || 'N/A'}`, { x: margin, y, size: 10.5, font, color: rgb(0, 0, 0) });
-        y -= 16;
+    // 📌 LÍNEA SIMPLE
+    const drawLine = () => {
+        page.drawLine({
+            start: { x: margin, y },
+            end: { x: pageWidth - margin, y },
+            thickness: 0.5,
+            color: rgb(0.7, 0.7, 0.7)
+        });
+        y -= 10;
     };
 
-    const drawParagraph = (label, value) => {
-        page.drawText(`${label}:`, { x: margin, y, size: 11, font: boldFont, color: rgb(0, 0, 0) });
+    // 🧩 DOS COLUMNAS
+    const drawTwoColumns = (leftLabel, leftValue, rightLabel, rightValue) => {
+        checkPageBreak();
+
+        const colWidth = (pageWidth - margin * 2) / 2;
+
+        page.drawText(`${leftLabel}: ${leftValue || ''}`, {
+            x: margin,
+            y,
+            size: 9,
+            font
+        });
+
+        page.drawText(`${rightLabel}: ${rightValue || ''}`, {
+            x: margin + colWidth,
+            y,
+            size: 9,
+            font
+        });
+
+        y -= 14;
+    };
+
+    // 🧾 LABEL NORMAL
+    const drawLabel = (label, value) => {
+        checkPageBreak();
+
+        page.drawText(`${label}: ${value || ''}`, {
+            x: margin,
+            y,
+            size: 9,
+            font
+        });
+
+        y -= 14;
+    };
+
+    // 🧠 PÁRRAFO PROFESIONAL (wrap real)
+    const drawParagraph = (title, text) => {
+        checkPageBreak(40);
+
+        page.drawText(`${title}:`, {
+            x: margin,
+            y,
+            size: 10,
+            font: bold
+        });
+
         y -= 14;
 
-        const text = String(value || 'N/A');
-        const maxCharsPerLine = 95;
-        const words = text.split(' ');
+        const words = String(text || 'N/A').split(' ');
         let line = '';
 
+        const maxWidth = pageWidth - margin * 2;
+
         for (const word of words) {
-            const candidate = line ? `${line} ${word}` : word;
-            if (candidate.length > maxCharsPerLine) {
-                page.drawText(line, { x: margin, y, size: 10, font, color: rgb(0, 0, 0) });
-                y -= 13;
-                line = word;
+            const testLine = line + word + ' ';
+            const textWidth = font.widthOfTextAtSize(testLine, 9);
+
+            if (textWidth > maxWidth) {
+                page.drawText(line, { x: margin, y, size: 9, font });
+                y -= 12;
+                line = word + ' ';
             } else {
-                line = candidate;
+                line = testLine;
             }
         }
 
         if (line) {
-            page.drawText(line, { x: margin, y, size: 10, font, color: rgb(0, 0, 0) });
-            y -= 15;
+            page.drawText(line, { x: margin, y, size: 9, font });
+            y -= 14;
         }
 
-        y -= 4;
+        y -= 6;
     };
 
+    // 🧪 TABLA SIMPLE (para OBJETIVO tipo pruebas)
+    const drawTable = (headers, rows) => {
+        checkPageBreak(60);
+
+        const colWidth = (pageWidth - margin * 2) / headers.length;
+
+        // headers
+        headers.forEach((h, i) => {
+            page.drawText(h, {
+                x: margin + i * colWidth,
+                y,
+                size: 9,
+                font: bold
+            });
+        });
+
+        y -= 14;
+
+        // rows
+        rows.forEach(row => {
+            checkPageBreak();
+
+            row.forEach((cell, i) => {
+                page.drawText(String(cell), {
+                    x: margin + i * colWidth,
+                    y,
+                    size: 8,
+                    font
+                });
+            });
+
+            y -= 12;
+        });
+
+        y -= 10;
+    };
+
+    // ========================
+    // 🧾 DATOS
+    // ========================
     const quote = history.Quotes;
     const pkg = quote?.Package;
     const patient = pkg?.patient;
-    const ciePrincipal = history.Cie10;
-    const cieSecundario = pkg?.secondaryDiagnosis;
 
-    drawTitle('HISTORIA CLINICA FISIOTERAPEUTICA');
-    drawLabelValue('Paciente', patient ? `${patient.nombre} ${patient.apellido}` : 'N/A');
-    drawLabelValue('Documento', patient?.num_doc);
-    drawLabelValue('Fecha evolucion', history.fecha_evolucion || new Date().toISOString().slice(0, 10));
-    drawLabelValue('Fecha cita', quote?.fecha_agendamiento);
-    drawLabelValue('Diagnostico principal (CIE10)', ciePrincipal ? `${ciePrincipal.codigo} - ${ciePrincipal.descripcion}` : 'N/A');
-    drawLabelValue('Motivo de consulta (CIE10 secundario)', cieSecundario ? `${cieSecundario.codigo} - ${cieSecundario.descripcion}` : 'N/A');
+    // ========================
+    // 🏥 HEADER
+    // ========================
+    drawTitle('Historia Clínica Fisioterapéutica');
+    drawLine();
 
-    y -= 8;
+    drawTwoColumns(
+        'Nombre del paciente',
+        `${patient?.nombre || ''} ${patient?.apellido || ''}`,
+        'Identificación',
+        patient?.num_doc
+    );
 
+    drawTwoColumns(
+        'Fecha',
+        history.fecha_evolucion,
+        'Edad',
+        patient?.edad
+    );
+
+    drawTwoColumns(
+        'Procedencia',
+        patient?.ciudad,
+        'Género',
+        patient?.genero
+    );
+
+    drawLabel('Dirección', patient?.direccion);
+    drawTwoColumns('Teléfono', patient?.telefono, 'Ocupación', patient?.ocupacion);
+    drawTwoColumns('Régimen', patient?.regimen, 'EPS', patient?.eps);
+
+    drawLabel('Red de apoyo', patient?.red_apoyo);
+
+    drawLine();
+
+    // ========================
+    // 🧬 DIAGNÓSTICO
+    // ========================
+    drawLabel(
+        'Diagnóstico médico (CIE-10)',
+        history.Cie10
+            ? `${history.Cie10.codigo} - ${history.Cie10.descripcion}`
+            : ''
+    );
+
+    drawLine();
+
+    // ========================
+    // 🧾 ANTECEDENTES
+    // ========================
+    drawTitle('Antecedentes');
+
+    drawLabel('Patológicos', patient?.antecedentes_patologicos);
+    drawLabel('Quirúrgicos', patient?.antecedentes_quirurgicos);
+    drawLabel('Traumáticos', patient?.antecedentes_traumaticos);
+    drawLabel('Farmacológicos', patient?.antecedentes_farmacologicos);
+    drawLabel('Familiares', patient?.antecedentes_familiares);
+    drawLabel('Sociales', patient?.antecedentes_sociales);
+
+    drawLine();
+
+    // ========================
+    // 🧠 EVOLUCIÓN
+    // ========================
     drawParagraph('Subjetivo', history.subjetivo);
-    drawParagraph('Objetivo', history.objetivo);
-    drawParagraph('Intervencion', history.intervencion);
+
+    // 🔥 Ejemplo de tabla tipo pruebas (si tienes data estructurada)
+    if (history.objetivo_tabla) {
+        drawTable(
+            ['Prueba', 'Descripción', 'Resultado'],
+            history.objetivo_tabla
+        );
+    } else {
+        drawParagraph('Objetivo', history.objetivo);
+    }
+
+    drawParagraph('Intervención', history.intervencion);
     drawParagraph('Estado del paciente', history.descripcion_estado_paciente);
     drawParagraph('Recomendaciones', history.recomendaciones);
 
-    drawParagraph('Antecedentes personales', patient?.antecedentes_personales || patient?.antecedentes);
-    drawParagraph('Antecedentes patologicos', patient?.antecedentes_patologicos);
-    drawParagraph('Antecedentes quirurgicos', patient?.antecedentes_quirurgicos);
-    drawParagraph('Antecedentes traumaticos', patient?.antecedentes_traumaticos);
-    drawParagraph('Antecedentes farmacologicos', patient?.antecedentes_farmacologicos);
-    drawParagraph('Antecedentes familiares', patient?.antecedentes_familiares);
-    drawParagraph('Antecedentes sociales', patient?.antecedentes_sociales);
-
     return Buffer.from(await pdfDoc.save());
 };
+// const buildHistoryPdf = async (history) => {
+//     const pdfDoc = await PDFDocument.create();
+//     const page = pdfDoc.addPage([595, 842]); // A4
+//     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+//     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+//     const { width, height } = page.getSize();
+//     const margin = 40;
+//     let y = height - margin;
+
+//     const drawTitle = (text) => {
+//         page.drawText(text, { x: margin, y, size: 14, font: boldFont, color: rgb(0, 0, 0) });
+//         y -= 24;
+//     };
+
+//     const drawLabelValue = (label, value) => {
+//         page.drawText(`${label}: ${value || 'N/A'}`, { x: margin, y, size: 10.5, font, color: rgb(0, 0, 0) });
+//         y -= 16;
+//     };
+
+//     const drawParagraph = (label, value) => {
+//         page.drawText(`${label}:`, { x: margin, y, size: 11, font: boldFont, color: rgb(0, 0, 0) });
+//         y -= 14;
+
+//         const text = String(value || 'N/A');
+//         const maxCharsPerLine = 95;
+//         const words = text.split(' ');
+//         let line = '';
+
+//         for (const word of words) {
+//             const candidate = line ? `${line} ${word}` : word;
+//             if (candidate.length > maxCharsPerLine) {
+//                 page.drawText(line, { x: margin, y, size: 10, font, color: rgb(0, 0, 0) });
+//                 y -= 13;
+//                 line = word;
+//             } else {
+//                 line = candidate;
+//             }
+//         }
+
+//         if (line) {
+//             page.drawText(line, { x: margin, y, size: 10, font, color: rgb(0, 0, 0) });
+//             y -= 15;
+//         }
+
+//         y -= 4;
+//     };
+
+//     const quote = history.Quotes;
+//     const pkg = quote?.Package;
+//     const patient = pkg?.patient;
+//     const ciePrincipal = history.Cie10;
+//     const cieSecundario = pkg?.secondaryDiagnosis;
+
+//     drawTitle('HISTORIA CLINICA FISIOTERAPEUTICA');
+//     drawLabelValue('Paciente', patient ? `${patient.nombre} ${patient.apellido}` : 'N/A');
+//     drawLabelValue('Documento', patient?.num_doc);
+//     drawLabelValue('Fecha evolucion', history.fecha_evolucion || new Date().toISOString().slice(0, 10));
+//     drawLabelValue('Fecha cita', quote?.fecha_agendamiento);
+//     drawLabelValue('Diagnostico principal (CIE10)', ciePrincipal ? `${ciePrincipal.codigo} - ${ciePrincipal.descripcion}` : 'N/A');
+//     drawLabelValue('Motivo de consulta (CIE10 secundario)', cieSecundario ? `${cieSecundario.codigo} - ${cieSecundario.descripcion}` : 'N/A');
+
+//     y -= 8;
+
+//     drawParagraph('Subjetivo', history.subjetivo);
+//     drawParagraph('Objetivo', history.objetivo);
+//     drawParagraph('Intervencion', history.intervencion);
+//     drawParagraph('Estado del paciente', history.descripcion_estado_paciente);
+//     drawParagraph('Recomendaciones', history.recomendaciones);
+
+//     drawParagraph('Antecedentes personales', patient?.antecedentes_personales || patient?.antecedentes);
+//     drawParagraph('Antecedentes patologicos', patient?.antecedentes_patologicos);
+//     drawParagraph('Antecedentes quirurgicos', patient?.antecedentes_quirurgicos);
+//     drawParagraph('Antecedentes traumaticos', patient?.antecedentes_traumaticos);
+//     drawParagraph('Antecedentes farmacologicos', patient?.antecedentes_farmacologicos);
+//     drawParagraph('Antecedentes familiares', patient?.antecedentes_familiares);
+//     drawParagraph('Antecedentes sociales', patient?.antecedentes_sociales);
+
+//     return Buffer.from(await pdfDoc.save());
+// };
 
 module.exports = {
     async create(data) {
@@ -166,6 +411,32 @@ module.exports = {
 
             return history;
         });
+    },
+    async getHistoryData(id) {
+        const history = await HistoryQuote.findByPk(id, {
+            include: [
+                { model: Cie10, as: 'Cie10' },
+                {
+                    model: Quotes,
+                    as: 'Quotes',
+                    include: [
+                        {
+                            model: Packages,
+                            include: [
+                                { model: Patient, as: 'patient' },
+                                { model: Cie10, as: 'secondaryDiagnosis' }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        });
+
+        if (!history) {
+            throw new Error('Historia no encontrada para exportar');
+        }
+
+        return history;
     },
 
     async exportPdf(id) {

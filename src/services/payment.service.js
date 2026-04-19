@@ -1,7 +1,11 @@
 const { Payment, Quotes, Packages, AttentionPackages, sequelize } = require('../models');
 
-const sumPaymentValues = (rows) => rows.reduce((acc, row) => acc + Number(row.valor || 0), 0);
+const sumPaymentValues = (rows) =>
+  rows.reduce((acc, row) => acc + Number(row.valor || 0), 0);
 
+/**
+ * Calcula el resumen de pagos de un paquete
+ */
 const getPackagePaymentSummary = async (id_paquete, transaction = null) => {
   const pkg = await Packages.findByPk(id_paquete, {
     include: [{ model: AttentionPackages, as: 'attentionPackage' }],
@@ -12,7 +16,10 @@ const getPackagePaymentSummary = async (id_paquete, transaction = null) => {
     throw new Error('Paquete no encontrado');
   }
 
-  const config = pkg.attentionPackage || (await pkg.getAttentionPackage({ transaction }));
+  const config =
+    pkg.attentionPackage ||
+    (await pkg.getAttentionPackage({ transaction }));
+
   const totalPaquete = Number(config?.valor || 0);
 
   const payments = await Payment.findAll({
@@ -40,128 +47,41 @@ const getPackagePaymentSummary = async (id_paquete, transaction = null) => {
   };
 };
 
-const createPayment = async (data) => {
-  return await sequelize.transaction(async (t) => {
-    if (!data.valor || Number(data.valor) <= 0 || !data.metodo_pago) {
-      throw new Error('Valor (mayor a 0) y metodo_pago son obligatorios');
-    }
-
-    const paymentType = data.tipo ?? (data.id_cita ? 'cita' : 'paquete');
-
-    if (paymentType === 'paquete' && !data.id_paquete) {
-      throw new Error('Para pagos de paquete debe enviar id_paquete');
-    }
-
-    if (paymentType === 'cita' && !data.id_cita) {
-      throw new Error('Para pagos de cita debe enviar id_cita');
-    }
-
-    if (data.id_paquete) {
-      const summary = await getPackagePaymentSummary(data.id_paquete, t);
-
-
-  if (!pkg) {
-    throw new Error('Paquete no encontrado');
-  }
-
-  const config = pkg.attentionPackage || (await pkg.getAttentionPackage({ transaction }));
-  const totalPaquete = Number(config?.valor || 0);
-
-  const payments = await Payment.findAll({
-    where: { id_paquete, tipo: 'paquete' },
-    transaction
-  });
-
-  const totalAbonado = sumPaymentValues(payments);
-  const saldoPendiente = Math.max(totalPaquete - totalAbonado, 0);
-
-  let estadoPago = 'pendiente';
-  if (totalPaquete > 0 && totalAbonado >= totalPaquete) {
-    estadoPago = 'pagado';
-  } else if (totalAbonado > 0) {
-    estadoPago = 'abonado';
-  }
-
-  return {
-    id_paquete,
-    total_paquete: totalPaquete,
-    total_abonado: totalAbonado,
-    saldo_pendiente: saldoPendiente,
-    estado_pago: estadoPago,
-    cantidad_abonos: payments.length
-  };
-};
-
-const createPayment = async (data) => {
-  return await sequelize.transaction(async (t) => {
-    if (!data.valor || Number(data.valor) <= 0 || !data.metodo_pago) {
-      throw new Error('Valor (mayor a 0) y metodo_pago son obligatorios');
-    }
-
-    const paymentType = data.tipo ?? (data.id_cita ? 'cita' : 'paquete');
-
-    if (paymentType === 'paquete' && !data.id_paquete) {
-      throw new Error('Para pagos de paquete debe enviar id_paquete');
-    }
-
-    if (paymentType === 'cita' && !data.id_cita) {
-      throw new Error('Para pagos de cita debe enviar id_cita');
-    }
-
-    if (data.id_paquete) {
-      const summary = await getPackagePaymentSummary(data.id_paquete, t);
-
-    cantidad_abonos: payments.length,
-  };
-};
-
+/**
+ * Obtiene todos los pagos de un paquete + resumen
+ */
 const getAllPaymentsForPackage = async (id_paquete, transaction = null) => {
-  const pkg = await Packages.findByPk(id_paquete, {
-    include: [{ model: AttentionPackages, as: 'attentionPackage' }],
-    transaction
-  });
-
-  if (!pkg) {
-    throw new Error('Paquete no encontrado');
-  }
-
-  const config = pkg.attentionPackage || (await pkg.getAttentionPackage({ transaction }));
-  const totalPaquete = Number(config?.valor || 0);
+  const summary = await getPackagePaymentSummary(id_paquete, transaction);
 
   const payments = await Payment.findAll({
     where: { id_paquete, tipo: 'paquete' },
     transaction
   });
 
-  const totalAbonado = sumPaymentValues(payments);
-  const saldoPendiente = Math.max(totalPaquete - totalAbonado, 0);
-
-  let estadoPago = 'pendiente';
-  if (totalPaquete > 0 && totalAbonado >= totalPaquete) {
-    estadoPago = 'pagado';
-  } else if (totalAbonado > 0) {
-    estadoPago = 'abonado';
-  }
-
   return {
-    id_paquete,
-    total_paquete: totalPaquete,
-    total_abonado: totalAbonado,
-    saldo_pendiente: saldoPendiente,
-    estado_pago: estadoPago,
-    cantidad_abonos: payments.length,
+    ...summary,
     pagos: payments
   };
 };
 
+/**
+ * Crear pago
+ */
 const createPayment = async (data) => {
   return await sequelize.transaction(async (t) => {
-    if (!data.valor || Number(data.valor) <= 0 || !data.metodo_pago) {
-      throw new Error('Valor (mayor a 0) y metodo_pago son obligatorios');
+    // 🔴 Validaciones básicas
+    if (!data.valor || Number(data.valor) <= 0) {
+      throw new Error('El valor debe ser mayor a 0');
     }
 
+    if (!data.metodo_pago) {
+      throw new Error('El metodo_pago es obligatorio');
+    }
+
+    // 🔴 Determinar tipo
     const paymentType = data.tipo ?? (data.id_cita ? 'cita' : 'paquete');
 
+    // 🔴 Validaciones de coherencia
     if (paymentType === 'paquete' && !data.id_paquete) {
       throw new Error('Para pagos de paquete debe enviar id_paquete');
     }
@@ -170,24 +90,43 @@ const createPayment = async (data) => {
       throw new Error('Para pagos de cita debe enviar id_cita');
     }
 
+    if (paymentType === 'cita' && data.id_paquete) {
+      throw new Error('Un pago de cita no puede tener id_paquete');
+    }
+
+    if (paymentType === 'paquete' && data.id_cita) {
+      throw new Error('Un pago de paquete no puede tener id_cita');
+    }
+
+    // 🔴 Validar sobrepago
     if (data.id_paquete) {
       const summary = await getPackagePaymentSummary(data.id_paquete, t);
 
-      if (summary.total_paquete > 0 && (summary.total_abonado + Number(data.valor)) > summary.total_paquete) {
-        throw new Error(`El abono excede el saldo pendiente del paquete (${summary.saldo_pendiente})`);
+      if (
+        summary.total_paquete > 0 &&
+        summary.total_abonado + Number(data.valor) > summary.total_paquete
+      ) {
+        throw new Error(
+          `El abono excede el saldo pendiente (${summary.saldo_pendiente})`
+        );
       }
     }
 
-    const payment = await Payment.create({
-      id_paquete: data.id_paquete ?? null,
-      id_cita: data.id_cita ?? null,
-      valor: data.valor,
-      metodo_pago: data.metodo_pago,
-      fecha_pago: data.fecha_pago ?? undefined,
-      observacion: data.observacion ?? null,
-      tipo: paymentType
-    }, { transaction: t });
+    // ✅ Crear pago
+    const payment = await Payment.create(
+      {
+        id_paquete: data.id_paquete ?? null,
+        id_cita: data.id_cita ?? null,
+        valor: Number(data.valor),
+        metodo_pago: data.metodo_pago,
+        fecha_pago: data.fecha_pago || null,
+        observacion: data.observacion ?? null,
+        tipo: paymentType
+      },
+      { transaction: t }
+    );
 
+    // ✅ Marcar cita como pagada
     if (data.id_cita) {
       await Quotes.update(
         { pagado: true },
@@ -195,6 +134,7 @@ const createPayment = async (data) => {
       );
     }
 
+    // ✅ Retornar resumen actualizado
     const packageSummary = data.id_paquete
       ? await getPackagePaymentSummary(data.id_paquete, t)
       : null;
@@ -206,11 +146,15 @@ const createPayment = async (data) => {
   });
 };
 
+/**
+ * CRUD básicos
+ */
 const getAll = async () => Payment.findAll();
 
 const getById = async (id) => Payment.findByPk(id);
 
-const getPackageSummary = async (id_paquete) => getPackagePaymentSummary(id_paquete);
+const getPackageSummary = async (id_paquete) =>
+  getPackagePaymentSummary(id_paquete);
 
 const updatePayment = async (id, data) => {
   await Payment.update(data, { where: { id } });
@@ -220,4 +164,12 @@ const updatePayment = async (id, data) => {
 const deletePayment = async (id) =>
   Payment.destroy({ where: { id } });
 
-module.exports = { createPayment, getAll, getById, getPackageSummary,getAllPaymentsForPackage, updatePayment, deletePayment };
+module.exports = {
+  createPayment,
+  getAll,
+  getById,
+  getPackageSummary,
+  getAllPaymentsForPackage,
+  updatePayment,
+  deletePayment
+};
