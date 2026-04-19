@@ -112,7 +112,7 @@ const buildHistoryDocx = async (history) => {
     });
 
     const quote = history.Quotes;
-    const pkg = quote?.Package;
+    const pkg = quote?.package;
     const patient = pkg?.patient;
 
     const calcularEdad = (fecha) => {
