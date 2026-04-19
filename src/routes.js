@@ -53,7 +53,7 @@ app.use(errorHandler);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/auth', auth);
 
-app.use(verifyToken);
+// app.use(verifyToken);
 app.use('/patient', patient);
 app.use('/packages', packages);
 app.use('/quotes',quotes);
