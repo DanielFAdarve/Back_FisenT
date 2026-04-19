@@ -342,6 +342,7 @@ module.exports = {
                     include: [
                         {
                             model: Packages,
+                            as:"package",
                             include: [
                                 { model: Patient, as: 'patient' },
                                 { model: Cie10, as: 'secondaryDiagnosis' }
