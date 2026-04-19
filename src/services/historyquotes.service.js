@@ -409,6 +409,7 @@ module.exports = {
                     include: [
                         {
                             model: Packages,
+                            as:"package",
                             include: [
                                 {
                                     model: Patient,

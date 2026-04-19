@@ -53,7 +53,7 @@ module.exports = {
 
             const result = hist.map(h => {
                 const quote = h.Quotes || {};
-                const pack = quote.Package || {};
+                const pack = quote.package || {};
                 const patient = pack.patient || {};
                 const diagnosis = patient.diagnosis || {};
 
