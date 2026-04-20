@@ -49,44 +49,56 @@ module.exports = {
 
     async getByQuote(req, res) {
         try {
-            const hist = await historyService.getByQuote(req.params.id);
+            const data = await historyService.getByQuote(req.params.id);
 
-            const result = hist.map(h => {
-                const quote = h.Quotes || {};
-                const pack = quote.package || {};
-                const patient = pack.patient || {};
-                const diagnosis = patient.diagnosis || {};
+            if (!data) {
+                return res.send(response.set(404, 'No existe la cita'));
+            }
 
-                return {
-                    // 🔹 DATOS DE LA HISTORIA (CITA)
-                    id_historial: h.id,
-                    id_cita: h.id_cita,
-                    cie10_historia: h.Cie10 || null,
+            const patient = data.package?.patient || {};
+            const diagnosis = patient.diagnosis || {};
+            const history = data.HistoryQuotes?.[0] || {}; // puede no existir
 
-                    // 🔹 PACIENTE
-                    tipo_doc: patient.tipo_doc,
-                    num_doc: patient.num_doc,
-                    telefono: patient.telefono,
-                    telefono_secundario: patient.telefono_secundario,
-                    email: patient.email,
-                    eps: patient.eps,
-                    ocupacion: patient.ocupacion,
-                    modalidad_deportiva: patient.modalidad_deportiva,
+            const result = {
+                // 🔹 CITA
+                id_cita: data.id,
+                fecha: data.fecha_agendamiento,
+                hora_inicio: data.horario_inicio,
 
-                    // 🔹 ANTECEDENTES
-                    antecedentes: patient.antecedentes,
-                    antecedentes_personales: patient.antecedentes_personales,
-                    antecedentes_patologicos: patient.antecedentes_patologicos,
-                    antecedentes_quirurgicos: patient.antecedentes_quirurgicos,
-                    antecedentes_traumaticos: patient.antecedentes_traumaticos,
-                    antecedentes_farmacologicos: patient.antecedentes_farmacologicos,
-                    antecedentes_familiares: patient.antecedentes_familiares,
-                    antecedentes_sociales: patient.antecedentes_sociales,
+                // 🔹 HISTORIA (puede venir vacía)
+                id_historial: history.id || null,
+                cie10_historia: history.Cie10 || null,
+                descripcion_estado_paciente: history.descripcion_estado_paciente || null,
+                subjetivo: history.subjetivo || null,
+                objetivo: history.objetivo || null,
+                intervencion: history.intervencion || null,
+                recomendaciones: history.recomendaciones || null,
 
-                    // 🔹 CIE10 DEL PACIENTE
-                    cie10_paciente: diagnosis
-                };
-            });
+                // 🔹 PACIENTE (SIEMPRE DEBE VENIR)
+                tipo_doc: patient.tipo_doc,
+                num_doc: patient.num_doc,
+                telefono: patient.telefono,
+                nombre: patient.nombre,
+                apellido: patient.apellido,
+                telefono_secundario: patient.telefono_secundario,
+                email: patient.email,
+                eps: patient.eps,
+                ocupacion: patient.ocupacion,
+                modalidad_deportiva: patient.modalidad_deportiva,
+
+                // 🔹 ANTECEDENTES
+                antecedentes: patient.antecedentes,
+                antecedentes_personales: patient.antecedentes_personales,
+                antecedentes_patologicos: patient.antecedentes_patologicos,
+                antecedentes_quirurgicos: patient.antecedentes_quirurgicos,
+                antecedentes_traumaticos: patient.antecedentes_traumaticos,
+                antecedentes_farmacologicos: patient.antecedentes_farmacologicos,
+                antecedentes_familiares: patient.antecedentes_familiares,
+                antecedentes_sociales: patient.antecedentes_sociales,
+
+                // 🔹 CIE10 PACIENTE
+                cie10_paciente: diagnosis
+            };
 
             res.send(response.set(200, 'Historial', result));
 

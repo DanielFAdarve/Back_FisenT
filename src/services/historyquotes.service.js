@@ -32,11 +32,11 @@ const syncPatientAntecedentsFromHistory = async (id_cita, data, transaction) => 
     if (Object.keys(payload).length === 0) return;
 
     const quote = await Quotes.findByPk(id_cita, {
-        include: [{ model: Packages, include: [{ model: Patient, as: 'patient' }] }],
+        include: [{ model: Packages, as: 'package', include: [{ model: Patient, as: 'patient' }] }],
         transaction
     });
 
-    const patient = quote?.Package?.patient;
+    const patient = quote?.package?.patient;
     if (!patient) return;
 
     await patient.update(payload, { transaction });
@@ -342,7 +342,7 @@ module.exports = {
                     include: [
                         {
                             model: Packages,
-                            as:"package",
+                            as: "package",
                             include: [
                                 { model: Patient, as: 'patient' },
                                 { model: Cie10, as: 'secondaryDiagnosis' }
@@ -370,7 +370,7 @@ module.exports = {
                     include: [
                         {
                             model: Packages,
-                            as:"package",
+                            as: "package",
                             include: [
                                 { model: Patient, as: 'patient' },
                                 { model: Cie10, as: 'secondaryDiagnosis' }
@@ -388,59 +388,50 @@ module.exports = {
         return buildHistoryPdf(history);
     },
 
-    // getByQuote(id_cita) {
-    //     return HistoryQuote.findAll({
-    //         where: { id_cita },
-    //         include: [ {
-    //             model: Cie10,
-    //             as: 'Cie10'
-    //         }]
-    //     });
-    // }
-    getByQuote(id_cita) {
-        return HistoryQuote.findAll({
-            where: { id_cita },
+    async getByQuote(id_cita) {
+        return await Quotes.findOne({
+            where: { id: id_cita },
             include: [
                 {
-                    model: Cie10,
-                    as: 'Cie10'
-                },
-                {
-                    model: Quotes,
-                    as: 'Quotes',
+                    model: HistoryQuote,
+                    required: false, // 🔥 CLAVE: LEFT JOIN
                     include: [
                         {
-                            model: Packages,
-                            as:"package",
+                            model: Cie10,
+                            as: 'Cie10'
+                        }
+                    ]
+                },
+                {
+                    model: Packages,
+                    as: 'package',
+                    include: [
+                        {
+                            model: Patient,
+                            as: 'patient',
+                            attributes: [
+                                'tipo_doc',
+                                'num_doc',
+                                'telefono',
+                                'telefono_secundario',
+                                'email',
+                                'eps',
+                                'ocupacion',
+                                'modalidad_deportiva',
+                                'antecedentes',
+                                'antecedentes_personales',
+                                'antecedentes_patologicos',
+                                'antecedentes_quirurgicos',
+                                'antecedentes_traumaticos',
+                                'antecedentes_farmacologicos',
+                                'antecedentes_familiares',
+                                'antecedentes_sociales'
+                            ],
                             include: [
                                 {
-                                    model: Patient,
-                                    as: 'patient',
-                                    attributes: [
-                                        'tipo_doc',
-                                        'num_doc',
-                                        'telefono',
-                                        'telefono_secundario',
-                                        'email',
-                                        'eps',
-                                        'ocupacion',
-                                        'modalidad_deportiva',
-                                        'antecedentes',
-                                        'antecedentes_personales',
-                                        'antecedentes_patologicos',
-                                        'antecedentes_quirurgicos',
-                                        'antecedentes_traumaticos',
-                                        'antecedentes_farmacologicos',
-                                        'antecedentes_familiares',
-                                        'antecedentes_sociales'
-                                    ],
-                                    include: [
-                                        {
-                                            model: Cie10,
-                                            as: 'diagnosis', // ESTE ES CLAVE
-                                            attributes: ['id', 'codigo', 'descripcion'] // ajusta a tu modelo
-                                        }
-                                    ]
+                                    model: Cie10,
+                                    as: 'diagnosis',
+                                    attributes: ['id', 'codigo', 'descripcion']
                                 }
                             ]
                         }
