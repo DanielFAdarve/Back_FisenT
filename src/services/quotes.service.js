@@ -102,5 +102,12 @@ module.exports = {
 
     async delete(id) {
         return await Quotes.destroy({ where: { id } });
+    },
+    async update(id, data) {
+        const quote = await Quotes.findByPk(id);
+        if (!quote) throw new Error('Cita no encontrada');
+
+        await quote.update(data);
+        return getById(id);
     }
 };

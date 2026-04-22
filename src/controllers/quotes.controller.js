@@ -111,5 +111,15 @@ module.exports = {
         } catch (err) {
             res.status(500).send(response.set(500, err.message));
         }
+    },
+    async updateQuote(req, res) {
+        try {
+            const id = req.params.id;
+            const data = req.body;
+            const updatedQuote = await quotesService.update(id, data);
+            res.send(response.set(200, 'Cita actualizada', updatedQuote));
+        } catch (err) {
+            res.status(400).send(response.set(400, err.message));
+        }
     }
-};
+}
