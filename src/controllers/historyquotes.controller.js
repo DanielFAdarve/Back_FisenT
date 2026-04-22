@@ -136,5 +136,14 @@ module.exports = {
         } catch (e) {
             res.status(400).send(response.set(500, e.message));
         }
+    },
+
+    async  deleteQuote(req, res) {
+        try {
+            const result = await historyService.deleteQuote(req.params.id);
+            res.send(response.set(200, 'Cita eliminada', result));
+        } catch (e) {
+            res.status(500).send(response.set(500, e.message));
+        }
     }
 };

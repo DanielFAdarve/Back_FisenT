@@ -1,5 +1,5 @@
 const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
-const { HistoryQuote, Cie10, Quotes, Packages, Patient, Payment,AttentionPackages, sequelize } = require('../models');
+const { HistoryQuote, Cie10, Quotes, Packages, Patient, Payment, AttentionPackages, sequelize } = require('../models');
 
 const ANTECEDENT_FIELDS = [
     'antecedentes',
@@ -517,8 +517,8 @@ module.exports = {
                             attributes: ['nombre', 'apellido']
                         },
                         {
-                            model:AttentionPackages,
-                            as:'attentionPackage',
+                            model: AttentionPackages,
+                            as: 'attentionPackage',
                             attributes: ['id', 'descripcion']
                         }
                     ]
@@ -547,5 +547,8 @@ module.exports = {
             metodo_pago: payment?.metodo_pago || null,
             fecha_ultimo_pago: payment?.fecha_pago || null
         };
+    },
+    async deleteQuote(id) {
+        Quotes.destroy({ where: { id } });
     }
 };
