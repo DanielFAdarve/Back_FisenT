@@ -114,10 +114,11 @@ module.exports = {
     },
     async updateQuote(req, res) {
         try {
-            const id = req.params.id;
-            const data = req.body;
-            const updatedQuote = await quotesService.update(id, data);
-            res.send(response.set(200, 'Cita actualizada', updatedQuote));
+            const { id } = req.params;
+            const updatedQuote = await quotesService.update(id, req.body);
+
+            res.send(response.set(200, 'Cita actualizada correctamente', updatedQuote));
+
         } catch (err) {
             res.status(400).send(response.set(400, err.message));
         }

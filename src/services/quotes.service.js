@@ -107,7 +107,38 @@ module.exports = {
         const quote = await Quotes.findByPk(id);
         if (!quote) throw new Error('Cita no encontrada');
 
+        // 🔥 importante: mantener ID para evitar choque consigo misma
+        const payload = {
+            ...quote.toJSON(),
+            ...data,
+            id // 👈 clave para validación de colisiones
+        };
+
+        // 🔥 reutilizas TODA la lógica de negocio
+        await this.create(payload);
+
+        // 🔥 ahora sí actualizas
         await quote.update(data);
-        return getById(id);
+
+        return await Quotes.findByPk(id, {
+            include: [
+                {
+                    model: Packages,
+                    as: 'package',
+                    include: [
+                        {
+                            model: Patient,
+                            as: 'patient',
+                            attributes: ['nombre', 'apellido']
+                        }
+                    ]
+                },
+                {
+                    model: Professional,
+                    as: 'professional',
+                    attributes: ['nombre']
+                }
+            ]
+        });
     }
 };
