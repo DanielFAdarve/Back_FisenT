@@ -112,5 +112,14 @@ module.exports = {
         } catch (error) {
             res.status(400).send(response.set(500, error.message));
         }
+    },
+
+    async getAvailablePackagesByPatient(req, res) {
+        try {
+            const packages = await packagesService.getAvailablePackagesByPatient(req.params.id);
+            res.send(response.set(200, 'Paquetes con citas disponibles', packages));
+        } catch (error) {
+            res.status(400).send(response.set(500, error.message));
+        }
     }
 };

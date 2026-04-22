@@ -118,5 +118,55 @@ module.exports = {
             if (ownTransaction) await t.rollback();
             throw err;
         }
+    },
+
+    async getAvailablePackagesByPatient(id_pacientes) {
+        const packages = await Packages.findAll({
+            where: { id_pacientes, id_estado_citas: 1 },
+            include: [
+                {
+                    model: AttentionPackages,
+                    as: 'attentionPackage',
+                    attributes: ['descripcion', 'cantidad_sesiones']
+                },
+                {
+                    model: Professional,
+                    as: 'professional',
+                    attributes: ['id', 'nombre', 'apellido']
+                },
+                {
+                    model: Cie10,
+                    as: 'secondaryDiagnosis',
+                    attributes: ['codigo', 'descripcion']
+                },
+                {
+                    model: Quotes,
+                    attributes: ['id']
+                }
+            ]
+        });
+
+        return packages
+            .map((pkg) => {
+                const sesionesTotales = pkg.attentionPackage?.cantidad_sesiones || 0;
+                const sesionesUsadas = pkg.Quotes?.length || 0;
+                const sesionesDisponibles = Math.max(sesionesTotales - sesionesUsadas, 0);
+
+                return {
+                    id_paquete: pkg.id,
+                    sesiones_disponibles: sesionesDisponibles,
+                    sesiones_totales: sesionesTotales,
+                    sesiones_usadas: sesionesUsadas,
+                    tipo_paquete: pkg.attentionPackage?.descripcion || null,
+                    id_profesional: pkg.professional?.id || null,
+                    profesional: pkg.professional
+                        ? `${pkg.professional.nombre || ''} ${pkg.professional.apellido || ''}`.trim()
+                        : null,
+                    motivo_secundario: pkg.secondaryDiagnosis
+                        ? `${pkg.secondaryDiagnosis.codigo} - ${pkg.secondaryDiagnosis.descripcion}`
+                        : null
+                };
+            })
+            .filter((pkg) => pkg.sesiones_disponibles > 0);
     }
 };

@@ -1,5 +1,5 @@
 const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
-const { HistoryQuote, Cie10, Quotes, Packages, Patient, sequelize } = require('../models');
+const { HistoryQuote, Cie10, Quotes, Packages, Patient, Payment, sequelize } = require('../models');
 
 const ANTECEDENT_FIELDS = [
     'antecedentes',
@@ -439,5 +439,57 @@ module.exports = {
                 }
             ]
         });
+    },
+
+    async getSummaryByHistoryNumber(historyNumber) {
+        const history = await HistoryQuote.findByPk(historyNumber, {
+            include: [
+                {
+                    model: Quotes,
+                    as: 'Quotes',
+                    attributes: ['id', 'fecha_agendamiento', 'horario_inicio', 'motivo', 'numero_sesion', 'pagado', 'id_profesional', 'id_paquetes'],
+                    include: [
+                        {
+                            model: Packages,
+                            as: 'package',
+                            attributes: ['id'],
+                            include: [
+                                {
+                                    model: Patient,
+                                    as: 'patient',
+                                    attributes: ['nombre', 'apellido']
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        });
+
+        if (!history) return null;
+
+        const quote = history.Quotes;
+        if (!quote) {
+            throw new Error('La historia no tiene una cita asociada');
+        }
+
+        const payment = await Payment.findOne({
+            where: { id_cita: quote.id },
+            order: [['fecha_pago', 'DESC']]
+        });
+
+        return {
+            numero_historia: history.id,
+            nombre_paciente: `${quote.package?.patient?.nombre || ''} ${quote.package?.patient?.apellido || ''}`.trim(),
+            id_profesional: quote.id_profesional,
+            fecha_cita: quote.fecha_agendamiento,
+            hora_cita: quote.horario_inicio,
+            id_paquete: quote.id_paquetes,
+            motivo: quote.motivo,
+            numero_sesion: quote.numero_sesion,
+            estado_pago: quote.pagado ? 'PAGADO' : 'PENDIENTE',
+            metodo_pago: payment?.metodo_pago || null,
+            fecha_ultimo_pago: payment?.fecha_pago || null
+        };
     }
 };
