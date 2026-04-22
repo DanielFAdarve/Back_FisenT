@@ -514,7 +514,7 @@ module.exports = {
                         {
                             model: Patient,
                             as: 'patient',
-                            attributes: ['nombre', 'apellido']
+                            attributes: ['id','nombre', 'apellido']
                         },
                         {
                             model: AttentionPackages,
@@ -535,6 +535,7 @@ module.exports = {
 
         return {
             numero_cita: quote.id,
+            id_paciente: quote.package?.patient ? quote.package.patient.id : null,
             nombre_paciente: `${quote.package?.patient?.nombre || ''} ${quote.package?.patient?.apellido || ''}`.trim(),
             id_profesional: quote.id_profesional,
             fecha_cita: quote.fecha_agendamiento,
