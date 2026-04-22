@@ -110,6 +110,23 @@ module.exports = {
     async getSummaryByHistoryNumber(req, res) {
         try {
             const data = await historyService.getSummaryByHistoryNumber(req.params.id);
+            // const data = await historyService.getSummaryByQuoteNumber(req.params.id);
+
+            if (!data) {
+                return res.send(response.set(404, 'No existe la historia clínica'));
+            }
+
+            res.send(response.set(200, 'Resumen de historia clínica', data));
+        } catch (e) {
+            res.status(400).send(response.set(500, e.message));
+        }
+    }
+    ,
+
+    async getSummaryByQuoteNumber(req, res) {
+        try {
+            // const data = await historyService.getSummaryByHistoryNumber(req.params.id);
+            const data = await historyService.getSummaryByQuoteNumber(req.params.id);
 
             if (!data) {
                 return res.send(response.set(404, 'No existe la historia clínica'));

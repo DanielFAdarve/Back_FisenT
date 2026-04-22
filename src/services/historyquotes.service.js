@@ -1,5 +1,5 @@
 const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
-const { HistoryQuote, Cie10, Quotes, Packages, Patient, Payment, sequelize } = require('../models');
+const { HistoryQuote, Cie10, Quotes, Packages, Patient, Payment,AttentionPackages, sequelize } = require('../models');
 
 const ANTECEDENT_FIELDS = [
     'antecedentes',
@@ -488,6 +488,62 @@ module.exports = {
             motivo: quote.motivo,
             numero_sesion: quote.numero_sesion,
             estado_pago: quote.pagado ? 'PAGADO' : 'PENDIENTE',
+            metodo_pago: payment?.metodo_pago || null,
+            fecha_ultimo_pago: payment?.fecha_pago || null
+        };
+    },
+
+    async getSummaryByQuoteNumber(quoteId) {
+        const quote = await Quotes.findByPk(quoteId, {
+            attributes: [
+                'id',
+                'fecha_agendamiento',
+                'horario_inicio',
+                'motivo',
+                'numero_sesion',
+                'pagado',
+                'id_profesional',
+                'id_paquetes'
+            ],
+            include: [
+                {
+                    model: Packages,
+                    as: 'package',
+                    attributes: ['id', 'id_paquetes_atenciones'],
+                    include: [
+                        {
+                            model: Patient,
+                            as: 'patient',
+                            attributes: ['nombre', 'apellido']
+                        },
+                        {
+                            model:AttentionPackages,
+                            as:'attentionPackage',
+                            attributes: ['id', 'descripcion']
+                        }
+                    ]
+                }
+            ]
+        });
+
+        if (!quote) return null;
+
+        const payment = await Payment.findOne({
+            where: { id_cita: quote.id },
+            order: [['fecha_pago', 'DESC']]
+        });
+
+        return {
+            numero_cita: quote.id,
+            nombre_paciente: `${quote.package?.patient?.nombre || ''} ${quote.package?.patient?.apellido || ''}`.trim(),
+            id_profesional: quote.id_profesional,
+            fecha_cita: quote.fecha_agendamiento,
+            hora_cita: quote.horario_inicio,
+            id_paquete: quote.id_paquetes,
+            motivo: quote.motivo,
+            numero_sesion: quote.numero_sesion,
+            id_tipo_paquete: quote.package?.attentionPackage?.id || null,
+            // estado_pago: quote.pagado ? 'PAGADO' : 'PENDIENTE',
             metodo_pago: payment?.metodo_pago || null,
             fecha_ultimo_pago: payment?.fecha_pago || null
         };

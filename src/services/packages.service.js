@@ -132,7 +132,7 @@ module.exports = {
                 {
                     model: Professional,
                     as: 'professional',
-                    attributes: ['id', 'nombre', 'apellido']
+                    attributes: ['id', 'nombre']
                 },
                 {
                     model: Cie10,
@@ -160,7 +160,7 @@ module.exports = {
                     tipo_paquete: pkg.attentionPackage?.descripcion || null,
                     id_profesional: pkg.professional?.id || null,
                     profesional: pkg.professional
-                        ? `${pkg.professional.nombre || ''} ${pkg.professional.apellido || ''}`.trim()
+                        ? `${pkg.professional.nombre || ''}`.trim()
                         : null,
                     motivo_secundario: pkg.secondaryDiagnosis
                         ? `${pkg.secondaryDiagnosis.codigo} - ${pkg.secondaryDiagnosis.descripcion}`
