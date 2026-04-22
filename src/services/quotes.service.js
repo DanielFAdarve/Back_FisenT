@@ -115,7 +115,7 @@ module.exports = {
         };
 
         // 🔥 reutilizas TODA la lógica de negocio
-        await this.create(payload);
+        // await this.create(payload);
 
         // 🔥 ahora sí actualizas
         await quote.update(data);
