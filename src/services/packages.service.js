@@ -120,7 +120,7 @@ module.exports = {
         }
     },
 
-    async getAvailablePackagesByPatient(id_pacientes) {
+    async getAvailablePackagesByPatient(id_pacientes, quoteId = null) {
         const packages = await Packages.findAll({
             where: { id_pacientes, id_estado_citas: 1 },
             include: [
@@ -148,23 +148,39 @@ module.exports = {
 
         return packages
             .map((pkg) => {
+
                 const sesionesTotales = pkg.attentionPackage?.cantidad_sesiones || 0;
-                const sesionesUsadas = pkg.Quotes?.length || 0;
+
+                // 🔥 EXCLUIR LA CITA ACTUAL
+                const citasFiltradas = quoteId
+                    ? pkg.Quotes.filter(q => q.id !== quoteId)
+                    : pkg.Quotes;
+
+                const sesionesUsadas = citasFiltradas.length;
+
                 const sesionesDisponibles = Math.max(sesionesTotales - sesionesUsadas, 0);
 
                 return {
                     id_paquete: pkg.id,
+
                     sesiones_disponibles: sesionesDisponibles,
                     sesiones_totales: sesionesTotales,
                     sesiones_usadas: sesionesUsadas,
+
                     tipo_paquete: pkg.attentionPackage?.descripcion || null,
+
                     id_profesional: pkg.professional?.id || null,
+
                     profesional: pkg.professional
                         ? `${pkg.professional.nombre || ''}`.trim()
                         : null,
+
                     motivo_secundario: pkg.secondaryDiagnosis
                         ? `${pkg.secondaryDiagnosis.codigo} - ${pkg.secondaryDiagnosis.descripcion}`
-                        : null
+                        : null,
+
+                    // 🔥 EXTRA (útil para el front)
+                    tiene_cita_actual: pkg.Quotes.some(q => q.id === quoteId)
                 };
             })
             .filter((pkg) => pkg.sesiones_disponibles > 0);
