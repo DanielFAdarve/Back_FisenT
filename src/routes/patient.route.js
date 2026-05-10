@@ -16,6 +16,33 @@ const { verifyToken } = require('../middlewares/auth.middleware');
  * @swagger
  * components:
  *   schemas:
+ *     Pagination:
+ *       type: object
+ *       properties:
+ *         total:
+ *           type: integer
+ *           description: Total de registros encontrados
+ *           example: 57
+ *         page:
+ *           type: integer
+ *           description: Página actual
+ *           example: 1
+ *         limit:
+ *           type: integer
+ *           description: Registros solicitados por página
+ *           example: 20
+ *         totalPages:
+ *           type: integer
+ *           description: Total de páginas disponibles
+ *           example: 3
+ *         hasNextPage:
+ *           type: boolean
+ *           description: Indica si existe una página siguiente
+ *           example: true
+ *         hasPreviousPage:
+ *           type: boolean
+ *           description: Indica si existe una página anterior
+ *           example: false
  *     Patient:
  *       type: object
  *       required:
@@ -64,19 +91,51 @@ const { verifyToken } = require('../middlewares/auth.middleware');
  * /patient/get-patients:
  *   get:
  *     summary: Obtiene toda la información de los pacientes
- *     description: Devuelve una lista de todos los pacientes registrados en el sistema.
+ *     description: Devuelve una lista paginada de pacientes activos registrados en el sistema.
  *     tags: [Patient]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Texto para buscar por nombre, apellido o número de documento
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Número de página solicitada
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Cantidad de pacientes por página
  *     responses:
  *       200:
  *         description: Lista de pacientes.
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Patient'
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: Listado de Pacientes
+ *                 response:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Patient'
+ *                 pagination:
+ *                   $ref: '#/components/schemas/Pagination'
  */
 router.get('/get-patients', patientController.getAllPatients);
 

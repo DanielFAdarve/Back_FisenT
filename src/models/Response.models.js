@@ -1,8 +1,12 @@
 class Response {
-    constructor(status, message, response) {
+    constructor(status, message, response, pagination = null) {
       this.status = status;
       this.message = message;
       this.response = response;
+
+      if (pagination) {
+        this.pagination = pagination;
+      }
     }
   
     static set(...args) {
@@ -15,6 +19,10 @@ class Response {
       } else if (args.length === 3) {
         return new Response(args[0], args[1], args[2]);
       }
+    }
+
+    static paginated(status, message, response, pagination) {
+      return new Response(status, message, response, pagination);
     }
   }
   
