@@ -1,5 +1,6 @@
 const { Op } = require('sequelize');
 const { Patient, Cie10 } = require('../models');
+const Pagination = require('../models/Pagination.models');
 
 const ensureDiagnosisExists = async (id_cie, label = 'principal') => {
   if (!id_cie) return;
@@ -40,7 +41,11 @@ const getAllPatients = async ({
   limit = 20
 }) => {
 
-  const offset = (page - 1) * limit;
+  const { page: normalizedPage, limit: normalizedLimit } = Pagination.normalize({
+    page,
+    limit
+  });
+  const offset = (normalizedPage - 1) * normalizedLimit;
 
   const where = {
     estado: true
@@ -70,17 +75,18 @@ const getAllPatients = async ({
   const { rows, count } = await Patient.findAndCountAll({
     where,
     include: patientInclude,
-    limit,
+    limit: normalizedLimit,
     offset,
     order: [['id', 'DESC']]
   });
 
   return {
     data: rows,
-    total: count,
-    page,
-    limit,
-    totalPages: Math.ceil(count / limit)
+    pagination: Pagination.set({
+      total: count,
+      page: normalizedPage,
+      limit: normalizedLimit
+    })
   };
 };
 

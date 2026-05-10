@@ -31,7 +31,12 @@ const getAllPatients = async (req, res) => {
     });
 
     res.status(200).send(
-      response.set(200, 'Listado de Pacientes', patients)
+      response.paginated(
+        200,
+        'Listado de Pacientes',
+        patients.data,
+        patients.pagination
+      )
     );
 
   } catch (error) {

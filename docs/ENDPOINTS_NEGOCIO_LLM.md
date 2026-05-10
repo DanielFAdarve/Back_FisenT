@@ -220,6 +220,12 @@ Retorna pacientes con `estado=true` e incluye diagnóstico principal (`diagnosis
 
 - `200`
 
+Query params opcionales:
+
+- `search`: busca por `nombre`, `apellido` o `num_doc`.
+- `page`: página solicitada; por defecto `1`.
+- `limit`: cantidad de registros por página; por defecto `20`.
+
 ```json
 {
   "status": 200,
@@ -239,7 +245,15 @@ Retorna pacientes con `estado=true` e incluye diagnóstico principal (`diagnosis
         "descripcion": "Lumbalgia"
       }
     }
-  ]
+  ],
+  "pagination": {
+    "total": 57,
+    "page": 1,
+    "limit": 20,
+    "totalPages": 3,
+    "hasNextPage": true,
+    "hasPreviousPage": false
+  }
 }
 ```
 
