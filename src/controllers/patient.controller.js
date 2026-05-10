@@ -3,11 +3,11 @@ const patientService = require('../services/patient.service');
 
 //Crear Paciente
 const create = async (req, res) => {
-  try{
+  try {
     const patient = await patientService.createPatient(req.body);
-    res.status(200).send(response.set(200, 'Ok',patient));
+    res.status(200).send(response.set(200, 'Ok', patient));
 
-  }catch(error){
+  } catch (error) {
 
     res.status(400).send(response.set(error.status || 500, error.message || 'No hubo respuesta del servidor'));
 
@@ -16,26 +16,44 @@ const create = async (req, res) => {
 
 //Listar todos los Pacientes
 const getAllPatients = async (req, res) => {
-  try{
+  try {
 
-    const patients = await patientService.getAllPatients();
-    res.status(200).send(response.set(200, 'Listado de Pacientes',patients));
+    const {
+      search = '',
+      page = 1,
+      limit = 20
+    } = req.query;
 
-  }catch(error){
+    const patients = await patientService.getAllPatients({
+      search,
+      page: Number(page),
+      limit: Number(limit)
+    });
 
-    res.status(400).send(response.set(error.status || 500, error.message || 'No hubo respuesta del servidor'));
+    res.status(200).send(
+      response.set(200, 'Listado de Pacientes', patients)
+    );
+
+  } catch (error) {
+
+    res.status(400).send(
+      response.set(
+        error.status || 500,
+        error.message || 'No hubo respuesta del servidor'
+      )
+    );
 
   }
 };
 
 //Obtener paciente por llave Primaria
 const getPatientById = async (req, res) => {
-  try{
+  try {
     // console.log(req.params);
     const patient = await patientService.getPatientById(req.params.id);
     res.status(200).send(response.set(200, 'Paciente listado', patient));
 
-  }catch(error){
+  } catch (error) {
 
     res.status(400).send(response.set(error.status || 500, error.message || 'No hubo respuesta del servidor'));
 
@@ -43,12 +61,12 @@ const getPatientById = async (req, res) => {
 };
 
 const getPatientByDocument = async (req, res) => {
-  try{
+  try {
     // console.log(req.params);
     const patient = await patientService.getPatientByDocumentNumber(req.params.id);
     res.status(200).send(response.set(200, 'Paciente listado', patient));
 
-  }catch(error){
+  } catch (error) {
 
     res.status(400).send(response.set(error.status || 500, error.message || 'No hubo respuesta del servidor'));
 
@@ -56,12 +74,12 @@ const getPatientByDocument = async (req, res) => {
 };
 
 const updatePatient = async (req, res) => {
-  try{
+  try {
     // console.log(req.params);
-    const patient = await patientService.updatePatient(req.params.id, req.body );
+    const patient = await patientService.updatePatient(req.params.id, req.body);
     res.status(200).send(response.set(200, 'Paciente actualizado', patient));
 
-  }catch(error){
+  } catch (error) {
 
     res.status(400).send(response.set(error.status || 500, error.message || 'No hubo respuesta del servidor'));
 
@@ -70,17 +88,17 @@ const updatePatient = async (req, res) => {
 
 
 const deletePatient = async (req, res) => {
-  try{
+  try {
     // console.log(req.params);
     const deleted = await patientService.deletePatient(req.params.id);
 
-    if(deleted){
+    if (deleted) {
       res.status(200).send(response.set(200, 'Paciente eliminado'));
-    }else{
-       res.status(200).send(response.set(200, 'Paciente no encontrado'));
+    } else {
+      res.status(200).send(response.set(200, 'Paciente no encontrado'));
     }
 
-  }catch(error){
+  } catch (error) {
 
     res.status(400).send(response.set(error.status || 500, error.message || 'No hubo respuesta del servidor'));
 
@@ -88,11 +106,11 @@ const deletePatient = async (req, res) => {
 };
 
 
-module.exports = { 
-    create,
-    getAllPatients,
-    getPatientById,
-    getPatientByDocument,
-    updatePatient,
-    deletePatient,
-    };
+module.exports = {
+  create,
+  getAllPatients,
+  getPatientById,
+  getPatientByDocument,
+  updatePatient,
+  deletePatient,
+};

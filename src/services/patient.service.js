@@ -1,16 +1,21 @@
+const { Op } = require('sequelize');
 const { Patient, Cie10 } = require('../models');
 
 const ensureDiagnosisExists = async (id_cie, label = 'principal') => {
   if (!id_cie) return;
 
   const diagnosis = await Cie10.findByPk(id_cie);
+
   if (!diagnosis) {
     throw new Error(`El código CIE10 ${label} del paciente no existe`);
   }
 };
 
 const patientInclude = [
-  { model: Cie10, as: 'diagnosis' }
+  {
+    model: Cie10,
+    as: 'diagnosis'
+  }
 ];
 
 const createPatient = async (data) => {
@@ -21,19 +26,62 @@ const createPatient = async (data) => {
   await ensureDiagnosisExists(data.id_cie, 'principal');
 
   if (!data.antecedentes) {
-    data.antecedentes = data.antecedentes_personales || 'Sin antecedentes reportados';
+    data.antecedentes =
+      data.antecedentes_personales ||
+      'Sin antecedentes reportados';
   }
-
-  await ensureDiagnosisExists(data.id_cie, 'principal');
 
   return await Patient.create(data);
 };
 
-const getAllPatients = async () => {
-  return await Patient.findAll({
-    where: { estado: true },
-    include: patientInclude
+const getAllPatients = async ({
+  search = '',
+  page = 1,
+  limit = 20
+}) => {
+
+  const offset = (page - 1) * limit;
+
+  const where = {
+    estado: true
+  };
+
+  if (search && search.trim() !== '') {
+
+    where[Op.or] = [
+      {
+        nombre: {
+          [Op.like]: `%${search}%`
+        }
+      },
+      {
+        apellido: {
+          [Op.like]: `%${search}%`
+        }
+      },
+      {
+        num_doc: {
+          [Op.like]: `%${search}%`
+        }
+      }
+    ];
+  }
+
+  const { rows, count } = await Patient.findAndCountAll({
+    where,
+    include: patientInclude,
+    limit,
+    offset,
+    order: [['id', 'DESC']]
   });
+
+  return {
+    data: rows,
+    total: count,
+    page,
+    limit,
+    totalPages: Math.ceil(count / limit)
+  };
 };
 
 const getPatientById = async (id) => {
@@ -51,28 +99,37 @@ const getPatientByDocumentNumber = async (num_doc) => {
 };
 
 const updatePatient = async (id, data) => {
+
   await ensureDiagnosisExists(data.id_cie, 'principal');
 
   if (data.antecedentes_personales && !data.antecedentes) {
     data.antecedentes = data.antecedentes_personales;
   }
 
-  const [updated] = await Patient.update(data, { where: { id } });
+  const [updated] = await Patient.update(data, {
+    where: { id }
+  });
+
   return updated
     ? await Patient.findOne({
-      where: { id },
-      include: patientInclude
-    })
+        where: { id },
+        include: patientInclude
+      })
     : null;
 };
 
 const deletePatient = async (id) => {
-  const [updated] = await Patient.update({ estado: false }, { where: { id } });
+
+  const [updated] = await Patient.update(
+    { estado: false },
+    { where: { id } }
+  );
+
   return updated
     ? await Patient.findOne({
-      where: { id },
-      include: patientInclude
-    })
+        where: { id },
+        include: patientInclude
+      })
     : null;
 };
 
