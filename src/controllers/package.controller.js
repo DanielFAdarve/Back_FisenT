@@ -116,10 +116,20 @@ module.exports = {
 
     async getAvailablePackagesByPatient(req, res) {
         try {
-            const packages = await packagesService.getAvailablePackagesByPatient(req.params.id);
+            const { id } = req.params;
+
+            // 👇 VIENE DEL FRONT (modo edición)
+            const { quoteId } = req.query;
+
+            const packages = await packagesService.getAvailablePackagesByPatient(
+                id,
+                quoteId ? Number(quoteId) : null
+            );
+
             res.send(response.set(200, 'Paquetes con citas disponibles', packages));
+
         } catch (error) {
-            res.status(400).send(response.set(500, error.message));
+            res.status(400).send(response.set(400, error.message));
         }
     }
 };

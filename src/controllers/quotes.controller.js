@@ -120,7 +120,7 @@ module.exports = {
             res.send(response.set(200, 'Cita actualizada correctamente', updatedQuote));
 
         } catch (err) {
-            res.status(400).send(response.set(400, err.message));
+            res.status(400).send(response.set(400, err));
         }
     }
 }
