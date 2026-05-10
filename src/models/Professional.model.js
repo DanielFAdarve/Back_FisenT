@@ -12,6 +12,27 @@ class Professional extends Model {
                 nombre: {
                     type: DataTypes.STRING(50),
                     allowNull: false
+                },
+                apellido: {
+                    type: DataTypes.TEXT,
+                     allowNull: true
+                },
+                especialidad: {
+                    type: DataTypes.TEXT,
+                    allowNull: true
+                },
+                telefono: {
+                    type: DataTypes.TEXT,
+                    allowNull: true
+                },
+                email: {
+                    type: DataTypes.TEXT,
+                    allowNull: true
+                },
+                estado:{
+                    type: DataTypes.BOOLEAN,
+                    allowNull: false,
+                    defaultValue: true  
                 }
             }, {
             sequelize,
