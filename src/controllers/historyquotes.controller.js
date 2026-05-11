@@ -107,6 +107,16 @@ module.exports = {
         }
     },
 
+
+    async getByPatient(req, res) {
+        try {
+            const histories = await historyService.getByPatient(req.params.id);
+            res.send(response.set(200, 'Historiales del paciente', histories));
+        } catch (e) {
+            res.status(400).send(response.set(500, e.message));
+        }
+    },
+
     async getSummaryByHistoryNumber(req, res) {
         try {
             const data = await historyService.getSummaryByHistoryNumber(req.params.id);

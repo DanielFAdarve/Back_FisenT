@@ -1,4 +1,6 @@
+const { Op } = require('sequelize');
 const { Payment, Quotes, Packages, AttentionPackages, sequelize } = require('../models');
+const Pagination = require('../models/Pagination.models');
 
 const sumPaymentValues = (rows) =>
   rows.reduce((acc, row) => acc + Number(row.valor || 0), 0);
@@ -149,12 +151,87 @@ const createPayment = async (data) => {
 /**
  * CRUD básicos
  */
-const getAll = async () => Payment.findAll();
+const getAll = async ({ page = 1, limit = 20, search = '', id_paquete, id_cita } = {}) => {
+  const { page: normalizedPage, limit: normalizedLimit } = Pagination.normalize({ page, limit });
+  const offset = (normalizedPage - 1) * normalizedLimit;
+  const where = {};
+
+  if (id_paquete) where.id_paquete = id_paquete;
+  if (id_cita) where.id_cita = id_cita;
+
+  if (search && search.trim() !== '') {
+    const value = `%${search.trim()}%`;
+    where[Op.or] = [
+      { metodo_pago: { [Op.iLike]: value } },
+      { tipo: { [Op.iLike]: value } },
+      { observacion: { [Op.iLike]: value } }
+    ];
+  }
+
+  const { rows, count } = await Payment.findAndCountAll({
+    where,
+    limit: normalizedLimit,
+    offset,
+    order: [['fecha_pago', 'DESC']]
+  });
+
+  return {
+    data: rows,
+    pagination: Pagination.set({
+      total: count,
+      page: normalizedPage,
+      limit: normalizedLimit
+    })
+  };
+};
 
 const getById = async (id) => Payment.findByPk(id);
 
 const getPackageSummary = async (id_paquete) =>
   getPackagePaymentSummary(id_paquete);
+
+const getAppointmentSummary = async (id_cita) => {
+  const quote = await Quotes.findByPk(id_cita, {
+    include: [
+      {
+        model: Packages,
+        as: 'package',
+        include: [{ model: AttentionPackages, as: 'attentionPackage' }]
+      }
+    ]
+  });
+  if (!quote) {
+    throw new Error('Cita no encontrada');
+  }
+
+  const payments = await Payment.findAll({
+    where: { id_cita, tipo: 'cita' }
+  });
+
+  const totalAbonado = sumPaymentValues(payments);
+  const packageValue = Number(quote.package?.attentionPackage?.valor || 0);
+  const sessionCount = Number(quote.package?.attentionPackage?.cantidad_sesiones || 0);
+  const totalCita = sessionCount > 0 ? Math.round(packageValue / sessionCount) : totalAbonado;
+  const saldoPendiente = Math.max(totalCita - totalAbonado, 0);
+
+  let estadoPago = 'pendiente';
+  if (totalCita > 0 && totalAbonado >= totalCita) {
+    estadoPago = 'pagado';
+  } else if (totalAbonado > 0) {
+    estadoPago = 'abonado';
+  } else if (quote.pagado) {
+    estadoPago = 'pagado';
+  }
+
+  return {
+    id_cita,
+    total_cita: totalCita,
+    total_abonado: totalAbonado,
+    saldo_pendiente: saldoPendiente,
+    estado_pago: estadoPago,
+    cantidad_abonos: payments.length
+  };
+};
 
 const updatePayment = async (id, data) => {
   await Payment.update(data, { where: { id } });
@@ -169,6 +246,7 @@ module.exports = {
   getAll,
   getById,
   getPackageSummary,
+  getAppointmentSummary,
   getAllPaymentsForPackage,
   updatePayment,
   deletePayment

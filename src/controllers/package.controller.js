@@ -70,11 +70,34 @@ module.exports = {
 
     async getAllPackages(req, res) {
         try {
-            const packages = await packagesService.getAll();
-            res.status(200).send(response.set(200, 'Consultada la informacion de los paquetes', packages));
+            const packages = await packagesService.getAll(req.query);
+            res.status(200).send(
+                response.paginated(
+                    200,
+                    'Consultada la informacion de los paquetes',
+                    packages.data,
+                    packages.pagination
+                )
+            );
 
         } catch (error) {
             res.status(400).send(response.set(error.status || 500, error.message || 'No hubo respuesta del servidor al obtener paquetes'));
+        }
+    },
+
+    async getAssignedPackages(req, res) {
+        try {
+            const packages = await packagesService.getAssigned(req.query);
+            res.status(200).send(
+                response.paginated(
+                    200,
+                    'Listado de paquetes asignados',
+                    packages.data,
+                    packages.pagination
+                )
+            );
+        } catch (error) {
+            res.status(400).send(response.set(error.status || 500, error.message || 'No hubo respuesta del servidor al obtener paquetes asignados'));
         }
     },
 

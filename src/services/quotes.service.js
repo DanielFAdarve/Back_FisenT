@@ -1,4 +1,6 @@
+const { Op } = require('sequelize');
 const { Quotes, Packages, AttentionPackages, Patient, Professional, StatusQuotes } = require('../models');
+const Pagination = require('../models/Pagination.models');
 
 module.exports = {
 
@@ -59,32 +61,91 @@ module.exports = {
         return await Quotes.create(data);
     },
 
-    async getAll() {
-        return await Quotes.findAll({
-            include: [
-                {
-                    model: Packages,
-                    as: 'package',
-                    include: [
-                        {
-                            model: Patient,
-                            as: 'patient',
-                            attributes: ['nombre', 'apellido']
-                        }
-                    ]
-                },
-                {
-                    model: Professional,
-                    as: 'professional',
-                    attributes: ['nombre']
-                },
-                {
-                    model: StatusQuotes,
-                    as: 'status',
-                    attributes: ['nombre']
-                }
-            ]
+    async getAll({
+        page = 1,
+        limit = 20,
+        search = '',
+        fecha,
+        fechaInicio,
+        fechaFin,
+        id_profesional,
+        id_paciente
+    } = {}) {
+        const { page: normalizedPage, limit: normalizedLimit } = Pagination.normalize({ page, limit });
+        const offset = (normalizedPage - 1) * normalizedLimit;
+        const where = {};
+        const packageWhere = {};
+
+        if (fecha) {
+            where.fecha_agendamiento = fecha;
+        } else if (fechaInicio && fechaFin) {
+            where.fecha_agendamiento = { [Op.between]: [fechaInicio, fechaFin] };
+        }
+
+        if (id_profesional) {
+            where.id_profesional = id_profesional;
+        }
+
+        if (id_paciente) {
+            packageWhere.id_pacientes = id_paciente;
+        }
+
+        if (search && search.trim() !== '') {
+            const value = `%${search.trim()}%`;
+            where[Op.or] = [
+                { motivo: { [Op.iLike]: value } },
+                { '$professional.nombre$': { [Op.iLike]: value } },
+                { '$professional.apellido$': { [Op.iLike]: value } },
+                { '$package.patient.nombre$': { [Op.iLike]: value } },
+                { '$package.patient.apellido$': { [Op.iLike]: value } },
+                { '$package.patient.num_doc$': { [Op.iLike]: value } }
+            ];
+        }
+
+        const include = [
+            {
+                model: Packages,
+                as: 'package',
+                required: Boolean(id_paciente),
+                where: packageWhere,
+                include: [
+                    {
+                        model: Patient,
+                        as: 'patient',
+                        attributes: ['id', 'nombre', 'apellido', 'num_doc']
+                    }
+                ]
+            },
+            {
+                model: Professional,
+                as: 'professional',
+                attributes: ['id', 'nombre', 'apellido']
+            },
+            {
+                model: StatusQuotes,
+                as: 'status',
+                attributes: ['id', 'nombre']
+            }
+        ];
+
+        const { rows, count } = await Quotes.findAndCountAll({
+            where,
+            include,
+            limit: normalizedLimit,
+            offset,
+            distinct: true,
+            subQuery: false,
+            order: [['fecha_agendamiento', 'DESC'], ['horario_inicio', 'ASC']]
         });
+
+        return {
+            data: rows,
+            pagination: Pagination.set({
+                total: count,
+                page: normalizedPage,
+                limit: normalizedLimit
+            })
+        };
     },
     async getAllAttentionPackages() {
         return await AttentionPackages.findAll();

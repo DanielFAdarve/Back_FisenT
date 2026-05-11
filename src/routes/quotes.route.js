@@ -22,6 +22,7 @@ router.get('/all', quotesController.getAllQuotes);
 router.get('/all-attention-packages', quotesController.getAllAttentionPackages);
 router.post('/create', quotesController.createQuote);
 router.put('/update/:id', quotesController.updateQuote);
+router.put('/:id', quotesController.updateQuote);
 router.get('/get-by-package/:id', quotesController.getQuotesByPackage);
 router.get('/availability/:id', quotesController.getAvailability); // ?date=YYYY-MM-DD
 router.delete('/:id', quotesController.deleteQuote);
