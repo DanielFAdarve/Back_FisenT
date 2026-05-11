@@ -38,9 +38,9 @@ module.exports = {
     },
     async getAllQuotes(req, res) {
         try {
-            const qts = await quotesService.getAll();
+            const qts = await quotesService.getAll(req.query);
 
-            const result = qts.map(q => {
+            const result = qts.data.map(q => {
                 const pack = q.package || {};
                 const patient = pack.patient || {};
                 const professional = q.professional || {};
@@ -54,19 +54,25 @@ module.exports = {
                     numero_sesion: q.numero_sesion,
                     pagado: q.pagado,
                     motivo: q.motivo,
+                    id_profesional: q.id_profesional,
+                    id_paquetes: q.id_paquetes,
+                    id_estado_citas: q.id_estado_citas,
 
                     // 🔹 PACIENTE
                     paciente: `${patient.nombre || ''} ${patient.apellido || ''}`.trim(),
+                    id_paciente: patient.id || null,
+                    num_doc_paciente: patient.num_doc || null,
 
                     // 🔹 PROFESIONAL
                     profesional: professional.nombre || null,
+                    apellido_profesional: professional.apellido || null,
 
                     // 🔹 ESTADO
                     estado: status.nombre || null
                 };
             });
 
-            res.send(response.set(200, "Citas", result));
+            res.send(response.paginated(200, 'Citas', result, qts.pagination));
 
         } catch (err) {
             res.status(400).send(response.set(500, err.message));

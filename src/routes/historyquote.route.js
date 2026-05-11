@@ -9,6 +9,7 @@ router.post('/create', historyController.create);
 router.put('/update/:id', historyController.update);
 router.get('/export-pdf/:id', historyController.exportPdf);
 router.get('/get-by-quote/:id', historyController.getByQuote);
+router.get('/get-by-patient/:id', historyController.getByPatient);
 router.get('/get-summary-by-history-number/:id', historyController.getSummaryByHistoryNumber);
 router.get('/get-summary-by-quote-number/:id', historyController.getSummaryByQuoteNumber);
 router.delete('/delete-quote/:id', historyController.deleteQuote);

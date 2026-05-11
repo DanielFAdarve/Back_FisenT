@@ -3,8 +3,8 @@ const response = require('../models/Response.models');
 
 const getAll = async (req, res) => {
   try {
-    const result = await paymentService.getAll();
-    res.send(response.set(200, 'Listado de pagos', result));
+    const result = await paymentService.getAll(req.query);
+    res.send(response.paginated(200, 'Listado de pagos', result.data, result.pagination));
   } catch (e) {
     res.status(500).send(response.set(500, e.message));
   }
@@ -23,6 +23,16 @@ const getPackageSummary = async (req, res) => {
   try {
     const result = await paymentService.getPackageSummary(req.params.id);
     res.send(response.set(200, 'Resumen de pagos del paquete', result));
+  } catch (e) {
+    res.status(500).send(response.set(500, e.message));
+  }
+};
+
+
+const getAppointmentSummary = async (req, res) => {
+  try {
+    const result = await paymentService.getAppointmentSummary(req.params.id);
+    res.send(response.set(200, 'Resumen de pagos de la cita', result));
   } catch (e) {
     res.status(500).send(response.set(500, e.message));
   }
@@ -64,4 +74,4 @@ const deletePayment = async (req, res) => {
   }
 };
 
-module.exports = { getAll, getById, getPackageSummary,getAllPaymentsForPackage, createPayment, updatePayment, deletePayment };
+module.exports = { getAll, getById, getPackageSummary, getAppointmentSummary, getAllPaymentsForPackage, createPayment, updatePayment, deletePayment };

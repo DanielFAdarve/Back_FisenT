@@ -1,4 +1,6 @@
+const { Op } = require('sequelize');
 const { Packages, AttentionPackages, Quotes, Patient, StatusPackages, Professional, Cie10, sequelize } = require('../models');
+const Pagination = require('../models/Pagination.models');
 
 module.exports = {
 
@@ -29,8 +31,80 @@ module.exports = {
         return await Packages.create(data);
     },
 
-    async getAll() {
-        return await AttentionPackages.findAll({});
+    async getAll({ page = 1, limit = 20, search = '' } = {}) {
+        const { page: normalizedPage, limit: normalizedLimit } = Pagination.normalize({ page, limit });
+        const offset = (normalizedPage - 1) * normalizedLimit;
+        const where = {};
+
+        if (search && search.trim() !== '') {
+            where.descripcion = { [Op.iLike]: `%${search.trim()}%` };
+        }
+
+        const { rows, count } = await AttentionPackages.findAndCountAll({
+            where,
+            limit: normalizedLimit,
+            offset,
+            order: [['descripcion', 'ASC']]
+        });
+
+        return {
+            data: rows,
+            pagination: Pagination.set({
+                total: count,
+                page: normalizedPage,
+                limit: normalizedLimit
+            })
+        };
+    },
+
+    async getAssigned({ page = 1, limit = 20, search = '', id_paciente, id_profesional, id_estado_citas } = {}) {
+        const { page: normalizedPage, limit: normalizedLimit } = Pagination.normalize({ page, limit });
+        const offset = (normalizedPage - 1) * normalizedLimit;
+        const where = {};
+
+        if (id_paciente) where.id_pacientes = id_paciente;
+        if (id_profesional) where.id_profesional = id_profesional;
+        if (id_estado_citas) where.id_estado_citas = id_estado_citas;
+
+        if (search && search.trim() !== '') {
+            const value = `%${search.trim()}%`;
+            where[Op.or] = [
+                { '$patient.nombre$': { [Op.iLike]: value } },
+                { '$patient.apellido$': { [Op.iLike]: value } },
+                { '$patient.num_doc$': { [Op.iLike]: value } },
+                { '$attentionPackage.descripcion$': { [Op.iLike]: value } },
+                { '$professional.nombre$': { [Op.iLike]: value } },
+                { '$professional.apellido$': { [Op.iLike]: value } }
+            ];
+        }
+
+        const include = [
+            { model: Patient, as: 'patient', attributes: ['id', 'nombre', 'apellido', 'num_doc'] },
+            { model: AttentionPackages, as: 'attentionPackage' },
+            { model: StatusPackages, as: 'statusPackage' },
+            { model: Professional, as: 'professional', attributes: ['id', 'nombre', 'apellido'] },
+            { model: Cie10, as: 'secondaryDiagnosis', attributes: ['id', 'codigo', 'descripcion'] },
+            { model: Quotes, attributes: ['id', 'fecha_agendamiento', 'numero_sesion', 'id_estado_citas'] }
+        ];
+
+        const { rows, count } = await Packages.findAndCountAll({
+            where,
+            include,
+            limit: normalizedLimit,
+            offset,
+            distinct: true,
+            subQuery: false,
+            order: [['id', 'DESC']]
+        });
+
+        return {
+            data: rows,
+            pagination: Pagination.set({
+                total: count,
+                page: normalizedPage,
+                limit: normalizedLimit
+            })
+        };
     },
     async getByPatient(id_pacientes) {
         return await Packages.findAll({

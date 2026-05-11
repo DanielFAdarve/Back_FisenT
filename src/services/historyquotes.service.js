@@ -410,8 +410,11 @@ module.exports = {
                             model: Patient,
                             as: 'patient',
                             attributes: [
+                                'id',
                                 'tipo_doc',
                                 'num_doc',
+                                'nombre',
+                                'apellido',
                                 'telefono',
                                 'telefono_secundario',
                                 'email',
@@ -438,6 +441,35 @@ module.exports = {
                     ]
                 }
             ]
+        });
+    },
+
+
+    async getByPatient(id_paciente) {
+        return await HistoryQuote.findAll({
+            include: [
+                { model: Cie10, as: 'Cie10', attributes: ['id', 'codigo', 'descripcion'] },
+                {
+                    model: Quotes,
+                    as: 'Quotes',
+                    attributes: ['id', 'fecha_agendamiento', 'horario_inicio', 'motivo', 'numero_sesion', 'id_profesional', 'id_paquetes'],
+                    required: true,
+                    include: [
+                        {
+                            model: Packages,
+                            as: 'package',
+                            attributes: ['id', 'id_pacientes', 'id_paquetes_atenciones'],
+                            where: { id_pacientes: id_paciente },
+                            required: true,
+                            include: [
+                                { model: Patient, as: 'patient', attributes: ['id', 'nombre', 'apellido', 'num_doc'] },
+                                { model: AttentionPackages, as: 'attentionPackage', attributes: ['id', 'descripcion'] }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            order: [['fecha_evolucion', 'DESC'], ['id', 'DESC']]
         });
     },
 
