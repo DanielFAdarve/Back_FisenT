@@ -64,7 +64,7 @@ class Patient extends Model {
                 antecedentes_farmacologicos: DataTypes.TEXT,
                 antecedentes_familiares: DataTypes.TEXT,
                 antecedentes_sociales: DataTypes.TEXT,
-                estado: DataTypes.BOOLEAN,
+                estado: {type:DataTypes.BOOLEAN, defaultValue: true},
             }, {
             sequelize,
             modelName: 'Patient',

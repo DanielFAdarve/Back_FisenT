@@ -1,4 +1,4 @@
-const { Op } = require('sequelize');
+const { Op, where: sequelizeWhere, fn, col } = require('sequelize');
 const { Patient, Cie10 } = require('../models');
 const Pagination = require('../models/Pagination.models');
 
@@ -52,23 +52,27 @@ const getAllPatients = async ({
   };
 
   if (search && search.trim() !== '') {
+    const searchLower = `%${search.toLowerCase()}%`;
 
     where[Op.or] = [
-      {
-        nombre: {
-          [Op.like]: `%${search}%`
+      sequelizeWhere(
+        fn('LOWER', col('nombre')),
+        {
+          [Op.like]: searchLower
         }
-      },
-      {
-        apellido: {
-          [Op.like]: `%${search}%`
+      ),
+      sequelizeWhere(
+        fn('LOWER', col('apellido')),
+        {
+          [Op.like]: searchLower
         }
-      },
-      {
-        num_doc: {
-          [Op.like]: `%${search}%`
+      ),
+      sequelizeWhere(
+        fn('LOWER', col('num_doc')),
+        {
+          [Op.like]: searchLower
         }
-      }
+      )
     ];
   }
 
@@ -118,9 +122,9 @@ const updatePatient = async (id, data) => {
 
   return updated
     ? await Patient.findOne({
-        where: { id },
-        include: patientInclude
-      })
+      where: { id },
+      include: patientInclude
+    })
     : null;
 };
 
@@ -133,9 +137,9 @@ const deletePatient = async (id) => {
 
   return updated
     ? await Patient.findOne({
-        where: { id },
-        include: patientInclude
-      })
+      where: { id },
+      include: patientInclude
+    })
     : null;
 };
 

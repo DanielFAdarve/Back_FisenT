@@ -25,7 +25,7 @@ const getAllPatients = async (req, res) => {
     } = req.query;
 
     const patients = await patientService.getAllPatients({
-      search,
+      search : search,
       page: Number(page),
       limit: Number(limit)
     });
