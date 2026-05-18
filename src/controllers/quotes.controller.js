@@ -68,7 +68,11 @@ module.exports = {
                     apellido_profesional: professional.apellido || null,
 
                     // 🔹 ESTADO
-                    estado: status.nombre || null
+                    estado: status.nombre || null,
+                    tipo_paquete: pack.attentionPackage?.descripcion || null,
+                    sesiones_totales_paquete: pack.attentionPackage?.cantidad_sesiones || null,
+                    tiene_historia: Array.isArray(q.HistoryQuotes) && q.HistoryQuotes.length > 0,
+                    id_historial: Array.isArray(q.HistoryQuotes) && q.HistoryQuotes[0] ? q.HistoryQuotes[0].id : null
                 };
             });
 
@@ -112,8 +116,8 @@ module.exports = {
     async deleteQuote(req, res) {
         try {
             const id = req.params.id;
-            await quotesService.delete(id);
-            res.send(response.set(200, 'Cita eliminada'));
+            const result = await quotesService.delete(id);
+            res.send(response.set(200, 'Cita eliminada', result));
         } catch (err) {
             res.status(500).send(response.set(500, err.message));
         }
@@ -126,7 +130,7 @@ module.exports = {
             res.send(response.set(200, 'Cita actualizada correctamente', updatedQuote));
 
         } catch (err) {
-            res.status(400).send(response.set(400, err));
+            res.status(400).send(response.set(400, err.message));
         }
     }
 }

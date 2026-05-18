@@ -64,6 +64,11 @@ module.exports = {
                 id_cita: data.id,
                 fecha: data.fecha_agendamiento,
                 hora_inicio: data.horario_inicio,
+                hora_fin: data.horario_fin,
+                numero_sesion: data.numero_sesion,
+                motivo: data.motivo,
+                id_estado_cita: data.id_estado_citas,
+                estado_cita: data.status?.nombre || null,
 
                 // 🔹 HISTORIA (puede venir vacía)
                 id_historial: history.id || null,
@@ -73,6 +78,16 @@ module.exports = {
                 objetivo: history.objetivo || null,
                 intervencion: history.intervencion || null,
                 recomendaciones: history.recomendaciones || null,
+
+                // 🔹 PAQUETE / AGENDA
+                id_paquete: data.id_paquetes,
+                id_tipo_paquete: data.package?.attentionPackage?.id || null,
+                tipo_paquete: data.package?.attentionPackage?.descripcion || null,
+                sesiones_totales_paquete: data.package?.attentionPackage?.cantidad_sesiones || null,
+                id_estado_paquete: data.package?.id_estado_citas || null,
+                estado_paquete: data.package?.statusPackage?.nombre || null,
+                id_profesional: data.id_profesional,
+                profesional: data.professional ? `${data.professional.nombre || ''} ${data.professional.apellido || ''}`.trim() : null,
 
                 // 🔹 PACIENTE (SIEMPRE DEBE VENIR)
                 tipo_doc: patient.tipo_doc,

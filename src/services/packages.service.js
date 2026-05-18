@@ -2,33 +2,120 @@ const { Op } = require('sequelize');
 const { Packages, AttentionPackages, Quotes, Patient, StatusPackages, Professional, Cie10, sequelize } = require('../models');
 const Pagination = require('../models/Pagination.models');
 
+const PACKAGE_STATUS = {
+    ACTIVE: 1,
+    CLOSED: 3
+};
+
+const PACKAGE_INCLUDE = [
+    { model: Patient, as: 'patient', attributes: ['id', 'nombre', 'apellido', 'num_doc'] },
+    { model: AttentionPackages, as: 'attentionPackage' },
+    { model: StatusPackages, as: 'statusPackage' },
+    { model: Professional, as: 'professional', attributes: ['id', 'nombre', 'apellido'] },
+    { model: Cie10, as: 'secondaryDiagnosis', attributes: ['id', 'codigo', 'descripcion'] },
+    { model: Quotes, attributes: ['id', 'fecha_agendamiento', 'horario_inicio', 'horario_fin', 'numero_sesion', 'id_estado_citas'] }
+];
+
+const getPackageUsage = (pkg) => {
+    const totalSessions = Number(pkg.attentionPackage?.cantidad_sesiones || 0);
+    const usedSessions = Array.isArray(pkg.Quotes) ? pkg.Quotes.length : 0;
+
+    return {
+        sesiones_totales: totalSessions,
+        sesiones_usadas: usedSessions,
+        sesiones_disponibles: Math.max(totalSessions - usedSessions, 0),
+        completo: totalSessions > 0 && usedSessions >= totalSessions
+    };
+};
+
+const hydratePackage = async (id, transaction = null) => {
+    const pkg = await Packages.findByPk(id, {
+        include: PACKAGE_INCLUDE,
+        transaction
+    });
+
+    if (!pkg) return null;
+
+    const plain = pkg.toJSON();
+    plain.resumen_sesiones = getPackageUsage(plain);
+    return plain;
+};
+
+const recalculatePackageStatus = async (id_paquetes, transaction = null) => {
+    if (!id_paquetes) return null;
+
+    const pkg = await Packages.findByPk(id_paquetes, {
+        include: [{ model: AttentionPackages, as: 'attentionPackage' }],
+        transaction
+    });
+
+    if (!pkg) throw new Error('Paquete no encontrado');
+
+    const used = await Quotes.count({ where: { id_paquetes }, transaction });
+    const total = Number(pkg.attentionPackage?.cantidad_sesiones || 0);
+    const nextStatus = total > 0 && used >= total ? PACKAGE_STATUS.CLOSED : PACKAGE_STATUS.ACTIVE;
+
+    if (pkg.id_estado_citas !== nextStatus) {
+        await pkg.update({ id_estado_citas: nextStatus }, { transaction });
+    }
+
+    return {
+        id_paquete: pkg.id,
+        id_estado_citas: nextStatus,
+        sesiones_totales: total,
+        sesiones_usadas: used,
+        sesiones_disponibles: Math.max(total - used, 0),
+        completo: total > 0 && used >= total
+    };
+};
+
 module.exports = {
+    PACKAGE_STATUS,
+    hydratePackage,
+    recalculatePackageStatus,
 
     async create(data) {
         const { id_pacientes, id_paquetes_atenciones, id_profesional, id_cie_secundario } = data;
 
-        // verificar si existe uno activo
-        const active = await Packages.findOne({
-            where: {
-                id_pacientes,
-                id_paquetes_atenciones,
-                id_estado_citas: 1 // estado "activo"
+        if (!id_pacientes || !id_paquetes_atenciones) {
+            throw new Error('id_pacientes e id_paquetes_atenciones son obligatorios');
+        }
+
+        return sequelize.transaction(async (t) => {
+            const patient = await Patient.findByPk(id_pacientes, { transaction: t });
+            if (!patient) throw new Error('Paciente no encontrado para asignar el paquete');
+
+            const attentionPackage = await AttentionPackages.findByPk(id_paquetes_atenciones, { transaction: t });
+            if (!attentionPackage) throw new Error('Tipo de paquete no encontrado');
+
+            const active = await Packages.findOne({
+                where: {
+                    id_pacientes,
+                    id_paquetes_atenciones,
+                    id_estado_citas: PACKAGE_STATUS.ACTIVE
+                },
+                transaction: t
+            });
+
+            if (active) throw new Error('El paciente ya tiene un paquete activo de este tipo.');
+
+            if (id_profesional) {
+                const professional = await Professional.findByPk(id_profesional, { transaction: t });
+                if (!professional) throw new Error('Profesional no encontrado para asignar el paquete');
             }
+
+            if (id_cie_secundario) {
+                const cie10 = await Cie10.findByPk(id_cie_secundario, { transaction: t });
+                if (!cie10) throw new Error('CIE10 secundario no encontrado para el motivo de consulta');
+            }
+
+            const pkg = await Packages.create({
+                ...data,
+                id_estado_citas: data.id_estado_citas || PACKAGE_STATUS.ACTIVE
+            }, { transaction: t });
+
+            return hydratePackage(pkg.id, t);
         });
-
-        if (active) throw new Error('El paciente ya tiene un paquete activo de este tipo.');
-
-        if (id_profesional) {
-            const professional = await Professional.findByPk(id_profesional);
-            if (!professional) throw new Error('Profesional no encontrado para asignar el paquete');
-        }
-
-        if (id_cie_secundario) {
-            const cie10 = await Cie10.findByPk(id_cie_secundario);
-            if (!cie10) throw new Error('CIE10 secundario no encontrado para el motivo de consulta');
-        }
-
-        return await Packages.create(data);
     },
 
     async getAll({ page = 1, limit = 20, search = '' } = {}) {
@@ -78,18 +165,9 @@ module.exports = {
             ];
         }
 
-        const include = [
-            { model: Patient, as: 'patient', attributes: ['id', 'nombre', 'apellido', 'num_doc'] },
-            { model: AttentionPackages, as: 'attentionPackage' },
-            { model: StatusPackages, as: 'statusPackage' },
-            { model: Professional, as: 'professional', attributes: ['id', 'nombre', 'apellido'] },
-            { model: Cie10, as: 'secondaryDiagnosis', attributes: ['id', 'codigo', 'descripcion'] },
-            { model: Quotes, attributes: ['id', 'fecha_agendamiento', 'numero_sesion', 'id_estado_citas'] }
-        ];
-
         const { rows, count } = await Packages.findAndCountAll({
             where,
-            include,
+            include: PACKAGE_INCLUDE,
             limit: normalizedLimit,
             offset,
             distinct: true,
@@ -98,7 +176,11 @@ module.exports = {
         });
 
         return {
-            data: rows,
+            data: rows.map((pkg) => {
+                const plain = pkg.toJSON();
+                plain.resumen_sesiones = getPackageUsage(plain);
+                return plain;
+            }),
             pagination: Pagination.set({
                 total: count,
                 page: normalizedPage,
@@ -106,88 +188,43 @@ module.exports = {
             })
         };
     },
+
     async getByPatient(id_pacientes) {
-        return await Packages.findAll({
+        const packages = await Packages.findAll({
             where: { id_pacientes },
-            include: [
-                {
-                    model: AttentionPackages,
-                    as: 'attentionPackage'
-                },
-                {
-                    model: StatusPackages,
-                    as: 'statusPackage'
-                },
-                {
-                    model: Professional,
-                    as: 'professional'
-                },
-                {
-                    model: Cie10,
-                    as: 'secondaryDiagnosis'
-                },
-                {
-                    model: Quotes,
-                    attributes: ['id', 'fecha_agendamiento', 'numero_sesion', 'id_estado_citas']
-                }
-            ]
+            include: PACKAGE_INCLUDE,
+            order: [['id', 'DESC']]
+        });
+
+        return packages.map((pkg) => {
+            const plain = pkg.toJSON();
+            plain.resumen_sesiones = getPackageUsage(plain);
+            return plain;
         });
     },
 
     async getById(id) {
-        return await Packages.findByPk(id, {
-            include: [
-                {
-                    model: Patient,
-                    as: 'patient'
-                },
-                {
-                    model: AttentionPackages,
-                    as: 'attentionPackage'
-                },
-                {
-                    model: StatusPackages,
-                    as: 'statusPackage'
-                },
-                {
-                    model: Professional,
-                    as: 'professional'
-                },
-                {
-                    model: Cie10,
-                    as: 'secondaryDiagnosis'
-                },
-                {
-                    model: Quotes
-                }
-            ]
-        });
+        return hydratePackage(id);
     },
 
     async close(id) {
-        return await Packages.update(
-            { id_estado_citas: 3 }, // cerrado
-            { where: { id } }
-        );
+        return sequelize.transaction(async (t) => {
+            const pkg = await Packages.findByPk(id, { transaction: t });
+            if (!pkg) throw new Error('Paquete no encontrado');
+
+            await pkg.update({ id_estado_citas: PACKAGE_STATUS.CLOSED }, { transaction: t });
+            return hydratePackage(id, t);
+        });
     },
 
     async checkAndClosePackage(id_paquetes, transaction = null) {
-        const t = transaction || await sequelize.transaction();
         const ownTransaction = !transaction;
+        const t = transaction || await sequelize.transaction();
+
         try {
-            const paquete = await Packages.findByPk(id_paquetes, { include: [{ model: AttentionPackages, as: 'attentionPackage' }], transaction: t });
-            if (!paquete) throw new Error('Paquete no encontrado');
-
-            const used = await Quotes.count({ where: { id_paquetes }, transaction: t });
-
-            const config = paquete.attentionPackage || (await paquete.getAttentionPackage({ transaction: t }));
-
-            if (config && used >= config.cantidad_sesiones) {
-                await Packages.update({ id_estado_citas: 3 }, { where: { id: id_paquetes }, transaction: t });
-            }
-
+            const result = await recalculatePackageStatus(id_paquetes, t);
             if (ownTransaction) await t.commit();
-            return true;
+            return result;
         } catch (err) {
             if (ownTransaction) await t.rollback();
             throw err;
@@ -196,67 +233,59 @@ module.exports = {
 
     async getAvailablePackagesByPatient(id_pacientes, quoteId = null) {
         const packages = await Packages.findAll({
-            where: { id_pacientes, id_estado_citas: 1 },
+            where: { id_pacientes, id_estado_citas: PACKAGE_STATUS.ACTIVE },
             include: [
                 {
                     model: AttentionPackages,
                     as: 'attentionPackage',
-                    attributes: ['descripcion', 'cantidad_sesiones']
+                    attributes: ['id', 'descripcion', 'cantidad_sesiones']
                 },
                 {
                     model: Professional,
                     as: 'professional',
-                    attributes: ['id', 'nombre']
+                    attributes: ['id', 'nombre', 'apellido']
                 },
                 {
                     model: Cie10,
                     as: 'secondaryDiagnosis',
-                    attributes: ['codigo', 'descripcion']
+                    attributes: ['id', 'codigo', 'descripcion']
                 },
                 {
                     model: Quotes,
                     attributes: ['id']
                 }
-            ]
+            ],
+            order: [['id', 'DESC']]
         });
 
         return packages
             .map((pkg) => {
-
-                const sesionesTotales = pkg.attentionPackage?.cantidad_sesiones || 0;
-
-                // 🔥 EXCLUIR LA CITA ACTUAL
+                const sesionesTotales = Number(pkg.attentionPackage?.cantidad_sesiones || 0);
+                const citas = pkg.Quotes || [];
                 const citasFiltradas = quoteId
-                    ? pkg.Quotes.filter(q => q.id !== quoteId)
-                    : pkg.Quotes;
-
+                    ? citas.filter(q => Number(q.id) !== Number(quoteId))
+                    : citas;
                 const sesionesUsadas = citasFiltradas.length;
-
                 const sesionesDisponibles = Math.max(sesionesTotales - sesionesUsadas, 0);
 
                 return {
                     id_paquete: pkg.id,
-
                     sesiones_disponibles: sesionesDisponibles,
                     sesiones_totales: sesionesTotales,
                     sesiones_usadas: sesionesUsadas,
-
                     tipo_paquete: pkg.attentionPackage?.descripcion || null,
-
+                    id_tipo_paquete: pkg.attentionPackage?.id || null,
                     id_profesional: pkg.professional?.id || null,
-
                     profesional: pkg.professional
-                        ? `${pkg.professional.nombre || ''}`.trim()
+                        ? `${pkg.professional.nombre || ''} ${pkg.professional.apellido || ''}`.trim()
                         : null,
-
+                    id_cie_secundario: pkg.secondaryDiagnosis?.id || null,
                     motivo_secundario: pkg.secondaryDiagnosis
                         ? `${pkg.secondaryDiagnosis.codigo} - ${pkg.secondaryDiagnosis.descripcion}`
                         : null,
-
-                    // 🔥 EXTRA (útil para el front)
-                    tiene_cita_actual: pkg.Quotes.some(q => q.id === quoteId)
+                    tiene_cita_actual: citas.some(q => Number(q.id) === Number(quoteId))
                 };
             })
-            .filter((pkg) => pkg.sesiones_disponibles > 0);
+            .filter((pkg) => pkg.sesiones_disponibles > 0 || pkg.tiene_cita_actual);
     }
 };
