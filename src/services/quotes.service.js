@@ -2,6 +2,7 @@ const { Op } = require('sequelize');
 const { Quotes, Packages, AttentionPackages, Patient, Professional, StatusQuotes, HistoryQuote, Cie10, sequelize } = require('../models');
 const Pagination = require('../models/Pagination.models');
 const packagesService = require('./packages.service');
+const { getNonConsumingQuoteStatusIds, buildConsumingQuoteWhere } = require('../utils/quoteSessionStatus.util');
 
 const QUOTE_INCLUDE = [
     {
@@ -109,9 +110,11 @@ const validateQuotePayload = async ({ data, currentQuote = null, transaction = n
             throw new Error('Debe indicar un profesional para agendar la cita');
         }
 
+        const nonConsumingStatusIds = await getNonConsumingQuoteStatusIds(StatusQuotes, transaction);
         const used = await Quotes.count({
             where: {
                 id_paquetes: payload.id_paquetes,
+                ...buildConsumingQuoteWhere(nonConsumingStatusIds),
                 ...(currentQuote ? { id: { [Op.ne]: currentQuote.id } } : {})
             },
             transaction
@@ -149,9 +152,17 @@ const getQuoteDetail = async (id, transaction = null) => {
 
     const plain = quote.toJSON();
     const total = Number(plain.package?.attentionPackage?.cantidad_sesiones || 0);
-    const packageQuotesCount = plain.id_paquetes
-        ? await Quotes.count({ where: { id_paquetes: plain.id_paquetes }, transaction })
-        : 0;
+    let packageQuotesCount = 0;
+    if (plain.id_paquetes) {
+        const nonConsumingStatusIds = await getNonConsumingQuoteStatusIds(StatusQuotes, transaction);
+        packageQuotesCount = await Quotes.count({
+            where: {
+                id_paquetes: plain.id_paquetes,
+                ...buildConsumingQuoteWhere(nonConsumingStatusIds)
+            },
+            transaction
+        });
+    }
 
     plain.agendamiento = {
         id_cita: plain.id,
@@ -176,8 +187,12 @@ const getQuoteDetail = async (id, transaction = null) => {
 const recalculateSessionNumbers = async (id_paquetes, transaction = null) => {
     if (!id_paquetes) return;
 
+    const nonConsumingStatusIds = await getNonConsumingQuoteStatusIds(StatusQuotes, transaction);
     const quotes = await Quotes.findAll({
-        where: { id_paquetes },
+        where: {
+            id_paquetes,
+            ...buildConsumingQuoteWhere(nonConsumingStatusIds)
+        },
         order: [['fecha_agendamiento', 'ASC'], ['horario_inicio', 'ASC'], ['id', 'ASC']],
         transaction
     });
@@ -298,6 +313,10 @@ module.exports = {
                 limit: normalizedLimit
             })
         };
+    },
+
+    async getById(id) {
+        return getQuoteDetail(id);
     },
 
     async getAllAttentionPackages() {

@@ -38,7 +38,7 @@ Los endpoints paginados agregan `pagination`:
 }
 ```
 
-> Nota: en varios `catch` el backend responde HTTP `400`, pero dentro del envelope puede venir `status: 500`. En frontend conviene validar tanto el HTTP status como `body.status`.
+> Nota: los errores de negocio se normalizaron para responder HTTP `400` con `status: 400` en el envelope. Los recursos inexistentes en detalle responden HTTP `404` con `status: 404`.
 
 ### Modelo de error estándar
 
@@ -57,8 +57,8 @@ Errores transversales frecuentes:
 | 400 | 400 | Validación de negocio | `id_pacientes e id_paquetes_atenciones son obligatorios` |
 | 400 | 400 | Recurso relacionado no existe | `Paciente no encontrado para asignar el paquete` |
 | 400 | 400 | Paquete/cita inválida | `Paquete no encontrado`, `Cita no encontrada` |
-| 400 | 500 | Error capturado por algunos controladores | Mensaje original del error |
-| 500 | 500 | Error no controlado en eliminación/disponibilidad | Mensaje original del error |
+| 404 | 404 | Recurso puntual no encontrado | `Paquete no encontrado`, `Cita no encontrada`, `No existe la historia clínica` |
+| 500 | 500 | Error no controlado | Mensaje original del error |
 
 ---
 
@@ -223,7 +223,20 @@ Errores posibles:
 {
   "status": 400,
   "message": "El paciente ya tiene un paquete activo de este tipo.",
-  "response": null
+  "response": {
+    "existingPackage": {
+      "id": 30,
+      "id_pacientes": 1,
+      "id_paquetes_atenciones": 2,
+      "id_estado_citas": 1,
+      "resumen_sesiones": {
+        "sesiones_totales": 10,
+        "sesiones_usadas": 1,
+        "sesiones_disponibles": 9,
+        "completo": false
+      }
+    }
+  }
 }
 ```
 
@@ -233,7 +246,7 @@ Consideraciones frontend:
 
 1. Después de crear, guardar `response.id` como `id_paquete` para agendar citas.
 2. El objeto ya viene hidratado para refrescar una tabla de paquetes asignados sin una consulta adicional.
-3. Si el backend responde duplicidad, conviene ofrecer continuar con el paquete activo existente; hoy el endpoint no devuelve el paquete duplicado, así que el front debe consultarlo con `GET /packages/get-assigned?id_paciente=...&id_estado_citas=1` o `GET /packages/get-by-patient/:id`.
+3. Si el backend responde duplicidad, usar `response.existingPackage` para ofrecer continuar con el paquete activo existente sin hacer una consulta adicional.
 
 ---
 
@@ -322,9 +335,17 @@ Respuesta exitosa:
 }
 ```
 
-### `GET /packages/get-by-patient/:idPaciente`
+### `GET /packages/get-by-patient/:idPaciente?page=1&limit=20&fechaInicio=2026-05-01&fechaFin=2026-05-31`
 
-Usar para detalle del paciente. Devuelve el mismo modelo de paquete asignado, pero sin `pagination`.
+Usar para detalle del paciente. Devuelve el mismo modelo de paquete asignado y ahora responde paginado para proteger fichas con mucho historial. Los filtros de fecha se aplican a las citas incluidas del paquete (`fecha_agendamiento`).
+
+Query params:
+
+| Param | Tipo | Obligatorio | Descripción |
+| --- | --- | --- | --- |
+| `page`, `limit` | number | No | Paginación. Por defecto `page=1`, `limit=20`. |
+| `fechaInicio` | string `YYYY-MM-DD` | No | Límite inferior para citas incluidas. |
+| `fechaFin` | string `YYYY-MM-DD` | No | Límite superior para citas incluidas. |
 
 Respuesta exitosa:
 
@@ -374,7 +395,15 @@ Respuesta exitosa:
         "completo": false
       }
     }
-  ]
+  ],
+  "pagination": {
+    "total": 1,
+    "page": 1,
+    "limit": 20,
+    "totalPages": 1,
+    "hasNextPage": false,
+    "hasPreviousPage": false
+  }
 }
 ```
 
@@ -384,7 +413,15 @@ Respuesta sin paquetes:
 {
   "status": 200,
   "message": "Paquetes del paciente",
-  "response": []
+  "response": [],
+  "pagination": {
+    "total": 0,
+    "page": 1,
+    "limit": 20,
+    "totalPages": 0,
+    "hasNextPage": false,
+    "hasPreviousPage": false
+  }
 }
 ```
 
@@ -446,7 +483,15 @@ Respuesta exitosa:
 }
 ```
 
-> Consideración: si no existe, `response` puede venir `null` con `status: 200`, porque el controlador no convierte ese caso en 404. El frontend debería manejar `!response`.
+Respuesta si no existe:
+
+```json
+{
+  "status": 404,
+  "message": "Paquete no encontrado",
+  "response": null
+}
+```
 
 ### `PUT /packages/close/:idPaquete`
 
@@ -768,6 +813,7 @@ Respuesta exitosa:
       "num_doc_paciente": "123",
       "profesional": "Laura",
       "apellido_profesional": "Gómez",
+      "profesional_nombre_completo": "Laura Gómez",
       "estado": "Agendada",
       "tipo_paquete": "Paquete fisioterapia 10 sesiones",
       "sesiones_totales_paquete": 10,
@@ -788,7 +834,82 @@ Respuesta exitosa:
 
 ---
 
-## 8. Editar cita
+## 8. Consultar cita por ID
+
+### `GET /quotes/:idCita`
+
+Usar para abrir formularios de edición o pantallas de detalle cuando el front solo tiene el identificador de la cita. Devuelve el modelo completo de la cita con paquete, paciente, profesional, estado, historia asociada y el bloque `agendamiento` calculado.
+
+Respuesta exitosa:
+
+```json
+{
+  "status": 200,
+  "message": "Detalle de la cita",
+  "response": {
+    "id": 101,
+    "fecha_agendamiento": "2026-05-20",
+    "horario_inicio": "09:00:00",
+    "horario_fin": "09:45:00",
+    "numero_sesion": 8,
+    "id_profesional": 3,
+    "id_paquetes": 30,
+    "package": {
+      "id": 30,
+      "patient": {
+        "id": 1,
+        "nombre": "Ana",
+        "apellido": "Pérez",
+        "num_doc": "123"
+      },
+      "attentionPackage": {
+        "id": 2,
+        "descripcion": "Paquete fisioterapia 10 sesiones",
+        "cantidad_sesiones": 10,
+        "valor": 500000
+      }
+    },
+    "professional": {
+      "id": 3,
+      "nombre": "Laura",
+      "apellido": "Gómez"
+    },
+    "status": {
+      "id": 1,
+      "nombre": "Agendada"
+    },
+    "HistoryQuotes": [],
+    "agendamiento": {
+      "id_cita": 101,
+      "id_paquete": 30,
+      "id_paciente": 1,
+      "id_profesional": 3,
+      "fecha": "2026-05-20",
+      "hora_inicio": "09:00:00",
+      "hora_fin": "09:45:00",
+      "numero_sesion": 8,
+      "sesiones_totales_paquete": 10,
+      "sesiones_usadas_paquete": 8,
+      "sesiones_disponibles_paquete": 2,
+      "paquete_completo": false,
+      "tiene_historia": false,
+      "id_historial": null
+    }
+  }
+}
+```
+
+Respuesta si no existe:
+
+```json
+{
+  "status": 404,
+  "message": "Cita no encontrada",
+  "response": null
+}
+```
+
+## 9. Editar cita
 
 ### `PUT /quotes/update/:idCita`
 
@@ -883,7 +1004,7 @@ Consideraciones:
 
 ---
 
-## 9. Validar disponibilidad del profesional
+## 10. Validar disponibilidad del profesional
 
 ### `GET /quotes/availability/:idProfesional?date=YYYY-MM-DD`
 
@@ -952,7 +1073,7 @@ Error si falta `date`:
 
 ---
 
-## 10. Citas por paquete
+## 11. Citas por paquete
 
 ### `GET /quotes/get-by-package/:idPaquete`
 
@@ -1020,7 +1141,7 @@ Respuesta exitosa:
 
 ---
 
-## 11. Eliminar cita
+## 12. Eliminar cita
 
 ### `DELETE /quotes/:idCita`
 
@@ -1055,7 +1176,7 @@ Error posible:
 
 ### `DELETE /history/delete-quote/:idCita`
 
-También elimina la cita y sus historias, pero **no recalcula el paquete** en el servicio actual. Para agenda/paquetes es preferible usar `DELETE /quotes/:idCita`.
+También elimina la cita y sus historias; ahora recalcula numeración de sesiones y estado del paquete. Para mantener un único contrato de agenda, sigue siendo preferible usar `DELETE /quotes/:idCita` desde pantallas no clínicas.
 
 Respuesta exitosa:
 
@@ -1065,14 +1186,22 @@ Respuesta exitosa:
   "message": "Cita eliminada",
   "response": {
     "id_cita": 101,
-    "historias_eliminadas": true
+    "historias_eliminadas": true,
+    "paquete": {
+      "id_paquete": 30,
+      "id_estado_citas": 1,
+      "sesiones_totales": 10,
+      "sesiones_usadas": 7,
+      "sesiones_disponibles": 3,
+      "completo": false
+    }
   }
 }
 ```
 
 ---
 
-## 12. Crear historia/evolución de una cita
+## 13. Crear historia/evolución de una cita
 
 ### `POST /history/create`
 
@@ -1137,7 +1266,7 @@ Errores posibles:
 
 ```json
 {
-  "status": 500,
+  "status": 400,
   "message": "id_cita e id_cie son obligatorios",
   "response": null
 }
@@ -1145,7 +1274,7 @@ Errores posibles:
 
 ```json
 {
-  "status": 500,
+  "status": 400,
   "message": "La cita ya tiene una evolución registrada",
   "response": null
 }
@@ -1155,7 +1284,7 @@ Otros mensajes: `La cita asociada no existe`, `La cita no tiene paquete/paciente
 
 ---
 
-## 13. Consultar historia por cita para formulario clínico
+## 14. Consultar historia por cita para formulario clínico
 
 ### `GET /history/get-by-quote/:idCita`
 
@@ -1296,7 +1425,7 @@ Consideraciones frontend:
 
 ---
 
-## 14. Editar historia/evolución
+## 15. Editar historia/evolución
 
 ### `PUT /history/update/:idHistorial`
 
@@ -1342,11 +1471,11 @@ Errores posibles: `Historia no encontrada`, `La cita destino ya tiene una evoluc
 
 ---
 
-## 15. Historias por paciente
+## 16. Historias por paciente
 
-### `GET /history/get-by-patient/:idPaciente`
+### `GET /history/get-by-patient/:idPaciente?page=1&limit=20&fechaInicio=2026-05-01&fechaFin=2026-05-31`
 
-Lista evoluciones registradas para el paciente, ordenadas por `fecha_evolucion` descendente.
+Lista evoluciones registradas para el paciente, ordenadas por `fecha_evolucion` descendente. Ahora es paginado y permite filtrar por rango de `fecha_evolucion`.
 
 Respuesta exitosa:
 
@@ -1395,7 +1524,15 @@ Respuesta exitosa:
         }
       }
     }
-  ]
+  ],
+  "pagination": {
+    "total": 1,
+    "page": 1,
+    "limit": 20,
+    "totalPages": 1,
+    "hasNextPage": false,
+    "hasPreviousPage": false
+  }
 }
 ```
 
@@ -1405,13 +1542,21 @@ Respuesta sin historias:
 {
   "status": 200,
   "message": "Historiales del paciente",
-  "response": []
+  "response": [],
+  "pagination": {
+    "total": 0,
+    "page": 1,
+    "limit": 20,
+    "totalPages": 0,
+    "hasNextPage": false,
+    "hasPreviousPage": false
+  }
 }
 ```
 
 ---
 
-## 16. Resúmenes de historia/cita
+## 17. Resúmenes de historia/cita
 
 ### `GET /history/get-summary-by-history-number/:idHistorial`
 
@@ -1488,11 +1633,15 @@ Respuesta si no existe:
 
 ---
 
-## 17. Exportar historia clínica
+## 18. Exportar historia clínica
+
+### `GET /history/export-docx/:idHistorial`
+
+Ruta recomendada para descargar la historia clínica en formato DOCX.
 
 ### `GET /history/export-pdf/:idHistorial`
 
-Aunque la ruta se llama `export-pdf`, actualmente el controlador genera y responde un archivo DOCX.
+Alias legado conservado por compatibilidad; también responde DOCX. No usar un viewer PDF con esta respuesta.
 
 Headers de respuesta exitosa:
 
@@ -1507,7 +1656,7 @@ Error posible:
 
 ```json
 {
-  "status": 500,
+  "status": 400,
   "message": "Historia no encontrada para exportar",
   "response": null
 }
@@ -1515,11 +1664,12 @@ Error posible:
 
 Consideración frontend:
 
-- Descargar como blob y nombrar el archivo con extensión `.docx`, no `.pdf`, mientras el backend mantenga el comportamiento actual.
+- Consumir preferiblemente `/history/export-docx/:idHistorial`, descargar como blob y nombrar el archivo con extensión `.docx`.
+- `/history/export-pdf/:idHistorial` queda solo como alias de compatibilidad y no cambia el tipo de archivo.
 
 ---
 
-## 18. Endpoint adicional disponible: catálogo de paquetes desde citas
+## 19. Endpoint adicional disponible: catálogo de paquetes desde citas
 
 ### `GET /quotes/all-attention-packages`
 
@@ -1566,7 +1716,7 @@ Respuesta exitosa:
 
 ### C. Edición/reagendamiento
 
-1. Tener `id_cita`, `id_paciente` e `id_paquete` actuales desde `GET /quotes/all` o contexto de agenda.
+1. Tener `id_cita` desde `GET /quotes/all`, contexto de agenda o cargar el detalle puntual con `GET /quotes/:idCita`.
 2. Consultar paquetes disponibles con `GET /packages/get-available-by-patient/:idPaciente?quoteId=:idCita`.
 3. Consultar disponibilidad del profesional/fecha.
 4. Actualizar con `PUT /quotes/update/:idCita`.
@@ -1578,7 +1728,7 @@ Respuesta exitosa:
 2. Si `id_historial` es `null`, mostrar formulario de creación y guardar con `POST /history/create`.
 3. Si `id_historial` existe, mostrar formulario precargado y guardar con `PUT /history/update/:idHistorial`.
 4. Para histórico del paciente, usar `GET /history/get-by-patient/:idPaciente`.
-5. Para documento clínico, usar `GET /history/export-pdf/:idHistorial` como descarga DOCX.
+5. Para documento clínico, usar `GET /history/export-docx/:idHistorial` como descarga DOCX.
 
 ---
 
@@ -1587,41 +1737,43 @@ Respuesta exitosa:
 | Paso | Endpoint | Método | Entrada clave | Devuelve | Uso front | Consideraciones |
 | ---: | --- | --- | --- | --- | --- | --- |
 | 1 | `/packages/get-packages` | GET | `page`, `limit`, `search` | Catálogo paginado de tipos de paquete | Selector/catálogo de venta | Preferible sobre `/quotes/all-attention-packages` porque pagina y busca. |
-| 2 | `/packages/create` | POST | `id_pacientes`, `id_paquetes_atenciones` | Paquete hidratado + `resumen_sesiones` | Crear paquete del paciente | Manejar duplicidad de paquete activo; si ocurre, consultar paquetes activos. |
+| 2 | `/packages/create` | POST | `id_pacientes`, `id_paquetes_atenciones` | Paquete hidratado + `resumen_sesiones` | Crear paquete del paciente | En duplicidad devuelve `response.existingPackage`. |
 | 3 | `/packages/get-assigned` | GET | filtros administrativos | Paquetes paginados con relaciones | Grilla admin | Incluye `Quotes` y resumen; puede ser pesado si hay muchas citas. |
-| 4 | `/packages/get-by-patient/:id` | GET | `idPaciente` | Paquetes del paciente | Detalle paciente | Sin paginación; suficiente para ficha del paciente. |
-| 5 | `/packages/get/:id` | GET | `idPaquete` | Detalle de paquete | Validar paquete puntual | Si no existe puede venir `response: null` con status 200. |
+| 4 | `/packages/get-by-patient/:id` | GET | `idPaciente`, `page`, `limit`, `fechaInicio`, `fechaFin` | Paquetes del paciente paginados | Detalle paciente | Filtros de fecha aplican a citas incluidas. |
+| 5 | `/packages/get/:id` | GET | `idPaquete` | Detalle de paquete | Validar paquete puntual | Si no existe responde HTTP/envelope 404. |
 | 6 | `/packages/close/:id` | PUT | `idPaquete` | Paquete cerrado | Cierre manual | Las citas también cierran automáticamente al consumir todas las sesiones. |
 | 7 | `/packages/get-available-by-patient/:id` | GET | `idPaciente`, opcional `quoteId` | Paquetes activos con cupos | Selector de agendamiento | En edición enviar siempre `quoteId`. |
 | 8 | `/quotes/availability/:id` | GET | `date` | Citas ocupadas del profesional | Calendario/slots | Si falta `date`, responde 400. No sustituye validación al guardar. |
 | 9 | `/quotes/create` | POST | fecha, horas, paquete/profesional | Cita + agendamiento + resumen paquete | Crear cita | Autocompleta profesional desde paquete si existe. Valida colisiones. |
-| 10 | `/quotes/all` | GET | filtros agenda | Citas paginadas normalizadas | Agenda/listado | Ideal para renderizar lista; trae `tiene_historia` e `id_historial`. |
-| 11 | `/quotes/update/:id` | PUT | campos de cita | Cita + agendamiento + resumen paquete | Reagendar/editar | Recalcula sesiones si cambia paquete. |
-| 12 | `/quotes/get-by-package/:id` | GET | `idPaquete` | Citas completas de un paquete | Ver sesiones | Útil para auditoría del paquete. |
-| 13 | `/quotes/:id` | DELETE | `idCita` | Resumen recalculado del paquete | Eliminar cita | Preferible a `/history/delete-quote/:id` porque recalcula paquete. |
-| 14 | `/history/get-by-quote/:id` | GET | `idCita` | Cita + paciente + historia opcional | Pantalla clínica | Principal endpoint para decidir crear/editar historia. |
-| 15 | `/history/create` | POST | `id_cita`, `id_cie`, textos clínicos | Historia creada | Crear evolución | Solo una historia por cita. Sincroniza antecedentes enviados al paciente. |
-| 16 | `/history/update/:id` | PUT | textos clínicos/CIE/cita | Historia actualizada | Editar evolución | Valida que la cita destino no tenga otra historia. |
-| 17 | `/history/get-by-patient/:id` | GET | `idPaciente` | Historias del paciente | Timeline clínico | Sin paginación; evaluar paginar si el volumen crece. |
-| 18 | `/history/get-summary-by-history-number/:id` | GET | `idHistorial` | Resumen administrativo | Pagos/recibos/resumen | Si no existe, responde envelope 404. |
-| 19 | `/history/get-summary-by-quote-number/:id` | GET | `idCita` | Resumen administrativo | Pagos/recibos/resumen | No incluye `estado_pago`; actualmente está comentado en servicio. |
-| 20 | `/history/export-pdf/:id` | GET | `idHistorial` | Archivo DOCX | Descargar historia | La ruta dice PDF pero responde DOCX. |
+| 10 | `/quotes/all` | GET | filtros agenda | Citas paginadas normalizadas | Agenda/listado | Trae `tiene_historia`, `id_historial` y `profesional_nombre_completo`. |
+| 11 | `/quotes/:id` | GET | `idCita` | Detalle completo de cita | Editar/ver cita | Incluye bloque `agendamiento`. |
+| 12 | `/quotes/update/:id` | PUT | campos de cita | Cita + agendamiento + resumen paquete | Reagendar/editar | Recalcula sesiones si cambia paquete. |
+| 13 | `/quotes/get-by-package/:id` | GET | `idPaquete` | Citas completas de un paquete | Ver sesiones | Útil para auditoría del paquete. |
+| 14 | `/quotes/:id` | DELETE | `idCita` | Resumen recalculado del paquete | Eliminar cita | Preferible a `/history/delete-quote/:id` porque recalcula paquete. |
+| 15 | `/history/get-by-quote/:id` | GET | `idCita` | Cita + paciente + historia opcional | Pantalla clínica | Principal endpoint para decidir crear/editar historia. |
+| 16 | `/history/create` | POST | `id_cita`, `id_cie`, textos clínicos | Historia creada | Crear evolución | Solo una historia por cita. Sincroniza antecedentes enviados al paciente. |
+| 17 | `/history/update/:id` | PUT | textos clínicos/CIE/cita | Historia actualizada | Editar evolución | Valida que la cita destino no tenga otra historia. |
+| 18 | `/history/get-by-patient/:id` | GET | `idPaciente`, `page`, `limit`, `fechaInicio`, `fechaFin` | Historias del paciente paginadas | Timeline clínico | Filtra por `fecha_evolucion`. |
+| 19 | `/history/get-summary-by-history-number/:id` | GET | `idHistorial` | Resumen administrativo | Pagos/recibos/resumen | Si no existe, responde envelope 404. |
+| 20 | `/history/get-summary-by-quote-number/:id` | GET | `idCita` | Resumen administrativo | Pagos/recibos/resumen | No incluye `estado_pago`; actualmente está comentado en servicio. |
+| 21 | `/history/export-docx/:id` | GET | `idHistorial` | Archivo DOCX | Descargar historia | Ruta recomendada. |
+| 22 | `/history/export-pdf/:id` | GET | `idHistorial` | Archivo DOCX | Compatibilidad | Alias legado; no usar viewer PDF. |
 
 ---
 
-## Consideraciones y posibles mejoras de backend
+## Consideraciones de backend ya aplicadas
 
-| Hallazgo | Impacto en front | Recomendación |
+| Ajuste aplicado | Impacto para frontend | Contrato actual |
 | --- | --- | --- |
-| `GET /history/export-pdf/:id` responde DOCX, no PDF. | El front puede nombrar mal el archivo o usar un viewer PDF incorrecto. | Renombrar ruta a `/history/export-docx/:id` o volver a activar conversión PDF. |
-| `DELETE /history/delete-quote/:id` elimina cita sin recalcular paquete. | El paquete puede quedar con estado/sesiones desactualizadas si se usa esa ruta. | Usar `DELETE /quotes/:id` desde front o ajustar el servicio de history para recalcular. |
-| Errores de historia devuelven HTTP 400 con envelope `status: 500`. | Manejo inconsistente de errores. | Normalizar status de validación a 400 y no usar 500 para errores de negocio. |
-| `GET /packages/get/:id` puede devolver `response: null` con status 200 si no existe. | El front debe validar `response` nulo. | Responder 404 cuando `hydratePackage` retorna null. |
-| `GET /packages/get-by-patient/:id` y `/history/get-by-patient/:id` no tienen paginación. | Puede impactar rendimiento con pacientes de mucho historial. | Agregar `page`, `limit`, `fechaInicio`, `fechaFin`. |
-| No hay endpoint específico para traer una cita por ID. | Para editar, el front depende de agenda/listados o de `/history/get-by-quote/:id`. | Agregar `GET /quotes/:id` con el modelo completo de cita/agendamiento. |
-| `POST /packages/create` no devuelve el paquete activo existente en error de duplicidad. | El front debe hacer una consulta adicional. | En error de duplicidad, considerar devolver `existingPackage` o crear un endpoint de búsqueda activo por paciente/tipo. |
-| El estado del paquete se recalcula contando todas las citas, sin filtrar estados cancelados. | Si existen estados de cita cancelada/no asistida, podrían consumir sesión. | Definir qué estados consumen sesión y filtrar el conteo. |
-| `GET /quotes/all` devuelve `profesional` y `apellido_profesional` separados, no nombre completo. | El front arma el nombre. | Opcional: agregar `profesional_nombre_completo`. |
+| Se agregó `GET /history/export-docx/:id` y `/history/export-pdf/:id` queda como alias DOCX. | El front puede nombrar correctamente el archivo y evitar viewers PDF. | Usar `.docx` y `Content-Type` de Word. |
+| `DELETE /history/delete-quote/:id` recalcula numeración y estado del paquete. | Evita paquetes desactualizados si una pantalla clínica usa esa ruta. | La respuesta incluye `paquete`. |
+| Errores de historia de negocio devuelven envelope `status: 400`. | Manejo consistente de validaciones. | Mostrar `message`; usar HTTP 404 cuando aplique. |
+| `GET /packages/get/:id` responde 404 si no existe. | El front ya no necesita interpretar `response: null` como no encontrado. | HTTP/envelope `404`, `message: "Paquete no encontrado"`. |
+| `GET /packages/get-by-patient/:id` y `/history/get-by-patient/:id` son paginados. | Menor riesgo de cargas grandes. | Soportan `page`, `limit`, `fechaInicio`, `fechaFin`. |
+| Se agregó `GET /quotes/:id`. | El formulario de edición puede cargar una cita puntual. | Devuelve cita completa con `agendamiento`. |
+| `POST /packages/create` devuelve `response.existingPackage` en duplicidad. | Evita consulta extra para continuar con el paquete activo. | HTTP/envelope `400` con paquete hidratado en `response.existingPackage`. |
+| El conteo de sesiones ignora estados no consumidores. | Citas canceladas/no asistidas no cierran ni consumen paquetes. | No consumen estados cuyo nombre contenga `cancel`, `inasist`, `no show` o `no asist`. |
+| `GET /quotes/all` agrega `profesional_nombre_completo`. | El front puede mostrar nombre completo sin concatenar. | Se mantienen `profesional` y `apellido_profesional` por compatibilidad. |
 
 ## Conclusión sobre viabilidad para frontend
 
@@ -1630,7 +1782,7 @@ Con los endpoints actuales el flujo **sí puede funcionar bien en el front** par
 Los puntos que el frontend debe cuidar son:
 
 1. Manejar correctamente `quoteId` al editar citas para no ocultar el paquete actual.
-2. Usar `DELETE /quotes/:id` en vez de `DELETE /history/delete-quote/:id` para mantener sesiones/estado del paquete consistentes.
-3. Descargar `/history/export-pdf/:id` como `.docx`.
-4. Validar `response === null` en detalle de paquete.
-5. Mostrar errores de negocio desde `message`, incluso cuando el envelope venga con `status: 500`.
+2. Usar preferiblemente `DELETE /quotes/:id` para agenda; si se usa `/history/delete-quote/:id`, la respuesta también incluye el paquete recalculado.
+3. Descargar `/history/export-docx/:id` como `.docx`; `/history/export-pdf/:id` es alias legado.
+4. Manejar 404 en detalle de paquete/cita como recurso inexistente.
+5. Mostrar errores de negocio desde `message` con envelope normalizado a `status: 400`.

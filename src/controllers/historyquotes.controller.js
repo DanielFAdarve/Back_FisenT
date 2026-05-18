@@ -8,7 +8,7 @@ module.exports = {
             const hist = await historyService.create(req.body);
             res.send(response.set(200, 'Historial creado', hist));
         } catch (e) {
-            res.status(400).send(response.set(500, e.message));
+            res.status(400).send(response.set(400, e.message));
         }
     },
 
@@ -17,12 +17,12 @@ module.exports = {
             const hist = await historyService.update(req.params.id, req.body);
             res.send(response.set(200, 'Historial actualizado', hist));
         } catch (e) {
-            res.status(400).send(response.set(500, e.message));
+            res.status(400).send(response.set(400, e.message));
         }
     },
 
 
-    async exportPdf(req, res) {
+    async exportDocx(req, res) {
         try {
             const history = await historyService.getHistoryData(req.params.id);
             const docFile = await docService.buildHistoryDocx(history);
@@ -43,7 +43,7 @@ module.exports = {
 
 
         } catch (e) {
-            res.status(400).send(response.set(500, e.message));
+            res.status(400).send(response.set(400, e.message));
         }
     },
 
@@ -52,7 +52,7 @@ module.exports = {
             const data = await historyService.getByQuote(req.params.id);
 
             if (!data) {
-                return res.send(response.set(404, 'No existe la cita'));
+                return res.status(404).send(response.set(404, 'No existe la cita'));
             }
 
             const patient = data.package?.patient || {};
@@ -118,17 +118,17 @@ module.exports = {
             res.send(response.set(200, 'Historial', result));
 
         } catch (e) {
-            res.status(400).send(response.set(500, e.message));
+            res.status(400).send(response.set(400, e.message));
         }
     },
 
 
     async getByPatient(req, res) {
         try {
-            const histories = await historyService.getByPatient(req.params.id);
-            res.send(response.set(200, 'Historiales del paciente', histories));
+            const histories = await historyService.getByPatient(req.params.id, req.query);
+            res.send(response.paginated(200, 'Historiales del paciente', histories.data, histories.pagination));
         } catch (e) {
-            res.status(400).send(response.set(500, e.message));
+            res.status(400).send(response.set(400, e.message));
         }
     },
 
@@ -138,12 +138,12 @@ module.exports = {
             // const data = await historyService.getSummaryByQuoteNumber(req.params.id);
 
             if (!data) {
-                return res.send(response.set(404, 'No existe la historia clínica'));
+                return res.status(404).send(response.set(404, 'No existe la historia clínica'));
             }
 
             res.send(response.set(200, 'Resumen de historia clínica', data));
         } catch (e) {
-            res.status(400).send(response.set(500, e.message));
+            res.status(400).send(response.set(400, e.message));
         }
     }
     ,
@@ -154,12 +154,12 @@ module.exports = {
             const data = await historyService.getSummaryByQuoteNumber(req.params.id);
 
             if (!data) {
-                return res.send(response.set(404, 'No existe la historia clínica'));
+                return res.status(404).send(response.set(404, 'No existe la historia clínica'));
             }
 
             res.send(response.set(200, 'Resumen de historia clínica', data));
         } catch (e) {
-            res.status(400).send(response.set(500, e.message));
+            res.status(400).send(response.set(400, e.message));
         }
     },
 
@@ -168,7 +168,7 @@ module.exports = {
             const result = await historyService.deleteQuote(req.params.id);
             res.send(response.set(200, 'Cita eliminada', result));
         } catch (e) {
-            res.status(500).send(response.set(500, e.message));
+            res.status(400).send(response.set(400, e.message));
         }
     }
 };

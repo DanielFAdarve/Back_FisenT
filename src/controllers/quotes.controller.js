@@ -1,27 +1,3 @@
-// const response = require('../models/Response.models');
-// const quotesService = require('../services/quotes.service');
-
-// module.exports = {
-
-//     async createQuote(req, res) {
-//         try {
-//             const quote = await quotesService.create(req.body);
-//             res.send(response.set(200, 'Cita creada', quote));
-//         } catch (err) {
-//             res.status(400).send(response.set(400, err.message));
-//         }
-//     },
-
-//     async getQuotesByPackage(req, res) {
-//         try {
-//             const qts = await quotesService.getByPackage(req.params.id);
-//             res.send(response.set(200, "Citas del paquete", qts));
-//         } catch (err) {
-//             res.status(400).send(response.set(500, err.message));
-//         }
-//     }
-// };
-
 // controllers/quotes.controller.js
 const response = require('../models/Response.models');
 const quotesService = require('../services/quotes.service');
@@ -66,6 +42,9 @@ module.exports = {
                     // 🔹 PROFESIONAL
                     profesional: professional.nombre || null,
                     apellido_profesional: professional.apellido || null,
+                    profesional_nombre_completo: professional.id
+                        ? `${professional.nombre || ''} ${professional.apellido || ''}`.trim()
+                        : null,
 
                     // 🔹 ESTADO
                     estado: status.nombre || null,
@@ -89,6 +68,20 @@ module.exports = {
             res.send(response.set(200, "Paquetes de atenciones ", qts));
         } catch (err) {
             res.status(400).send(response.set(500, err.message));
+        }
+    },
+
+    async getQuoteById(req, res) {
+        try {
+            const quote = await quotesService.getById(req.params.id);
+
+            if (!quote) {
+                return res.status(404).send(response.set(404, 'Cita no encontrada'));
+            }
+
+            res.send(response.set(200, 'Detalle de la cita', quote));
+        } catch (err) {
+            res.status(400).send(response.set(400, err.message));
         }
     },
 
