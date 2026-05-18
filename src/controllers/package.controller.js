@@ -106,14 +106,14 @@ module.exports = {
             const pkg = await packagesService.create(req.body);
             res.send(response.set(200, "Paquete creado", pkg));
         } catch (error) {
-            res.status(400).send(response.set(400, error.message));
+            res.status(400).send(response.set(400, error.message, error.existingPackage ? { existingPackage: error.existingPackage } : null));
         }
     },
 
     async getPackagesByPatient(req, res) {
         try {
-            const pkgs = await packagesService.getByPatient(req.params.id);
-            res.send(response.set(200, "Paquetes del paciente", pkgs));
+            const pkgs = await packagesService.getByPatient(req.params.id, req.query);
+            res.send(response.paginated(200, "Paquetes del paciente", pkgs.data, pkgs.pagination));
         } catch (error) {
             res.status(400).send(response.set(400, error.message));
         }
@@ -122,6 +122,11 @@ module.exports = {
     async getPackageById(req, res) {
         try {
             const pkg = await packagesService.getById(req.params.id);
+
+            if (!pkg) {
+                return res.status(404).send(response.set(404, "Paquete no encontrado"));
+            }
+
             res.send(response.set(200, "Detalle del paquete", pkg));
         } catch (error) {
             res.status(400).send(response.set(400, error.message));

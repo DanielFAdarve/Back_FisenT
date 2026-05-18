@@ -1,6 +1,7 @@
 const { Op } = require('sequelize');
-const { Packages, AttentionPackages, Quotes, Patient, StatusPackages, Professional, Cie10, sequelize } = require('../models');
+const { Packages, AttentionPackages, Quotes, Patient, StatusPackages, Professional, Cie10, StatusQuotes, sequelize } = require('../models');
 const Pagination = require('../models/Pagination.models');
+const { isSessionConsumingStatusName, getNonConsumingQuoteStatusIds, buildConsumingQuoteWhere } = require('../utils/quoteSessionStatus.util');
 
 const PACKAGE_STATUS = {
     ACTIVE: 1,
@@ -13,12 +14,18 @@ const PACKAGE_INCLUDE = [
     { model: StatusPackages, as: 'statusPackage' },
     { model: Professional, as: 'professional', attributes: ['id', 'nombre', 'apellido'] },
     { model: Cie10, as: 'secondaryDiagnosis', attributes: ['id', 'codigo', 'descripcion'] },
-    { model: Quotes, attributes: ['id', 'fecha_agendamiento', 'horario_inicio', 'horario_fin', 'numero_sesion', 'id_estado_citas'] }
+    {
+        model: Quotes,
+        attributes: ['id', 'fecha_agendamiento', 'horario_inicio', 'horario_fin', 'numero_sesion', 'id_estado_citas'],
+        include: [{ model: StatusQuotes, as: 'status', attributes: ['id', 'nombre'] }]
+    }
 ];
 
 const getPackageUsage = (pkg) => {
     const totalSessions = Number(pkg.attentionPackage?.cantidad_sesiones || 0);
-    const usedSessions = Array.isArray(pkg.Quotes) ? pkg.Quotes.length : 0;
+    const usedSessions = Array.isArray(pkg.Quotes)
+        ? pkg.Quotes.filter((quote) => isSessionConsumingStatusName(quote.status?.nombre)).length
+        : 0;
 
     return {
         sesiones_totales: totalSessions,
@@ -51,7 +58,14 @@ const recalculatePackageStatus = async (id_paquetes, transaction = null) => {
 
     if (!pkg) throw new Error('Paquete no encontrado');
 
-    const used = await Quotes.count({ where: { id_paquetes }, transaction });
+    const nonConsumingStatusIds = await getNonConsumingQuoteStatusIds(StatusQuotes, transaction);
+    const used = await Quotes.count({
+        where: {
+            id_paquetes,
+            ...buildConsumingQuoteWhere(nonConsumingStatusIds)
+        },
+        transaction
+    });
     const total = Number(pkg.attentionPackage?.cantidad_sesiones || 0);
     const nextStatus = total > 0 && used >= total ? PACKAGE_STATUS.CLOSED : PACKAGE_STATUS.ACTIVE;
 
@@ -97,7 +111,11 @@ module.exports = {
                 transaction: t
             });
 
-            if (active) throw new Error('El paciente ya tiene un paquete activo de este tipo.');
+            if (active) {
+                const err = new Error('El paciente ya tiene un paquete activo de este tipo.');
+                err.existingPackage = await hydratePackage(active.id, t);
+                throw err;
+            }
 
             if (id_profesional) {
                 const professional = await Professional.findByPk(id_profesional, { transaction: t });
@@ -189,18 +207,51 @@ module.exports = {
         };
     },
 
-    async getByPatient(id_pacientes) {
-        const packages = await Packages.findAll({
+    async getByPatient(id_pacientes, { page = 1, limit = 20, fechaInicio, fechaFin } = {}) {
+        const { page: normalizedPage, limit: normalizedLimit } = Pagination.normalize({ page, limit });
+        const offset = (normalizedPage - 1) * normalizedLimit;
+        const quoteDateWhere = {};
+
+        if (fechaInicio && fechaFin) {
+            quoteDateWhere.fecha_agendamiento = { [Op.between]: [fechaInicio, fechaFin] };
+        } else if (fechaInicio) {
+            quoteDateWhere.fecha_agendamiento = { [Op.gte]: fechaInicio };
+        } else if (fechaFin) {
+            quoteDateWhere.fecha_agendamiento = { [Op.lte]: fechaFin };
+        }
+
+        const include = PACKAGE_INCLUDE.map((item) => {
+            if (item.model !== Quotes) return item;
+
+            return {
+                ...item,
+                required: Boolean(fechaInicio || fechaFin),
+                where: quoteDateWhere
+            };
+        });
+
+        const { rows, count } = await Packages.findAndCountAll({
             where: { id_pacientes },
-            include: PACKAGE_INCLUDE,
+            include,
+            limit: normalizedLimit,
+            offset,
+            distinct: true,
+            subQuery: false,
             order: [['id', 'DESC']]
         });
 
-        return packages.map((pkg) => {
-            const plain = pkg.toJSON();
-            plain.resumen_sesiones = getPackageUsage(plain);
-            return plain;
-        });
+        return {
+            data: rows.map((pkg) => {
+                const plain = pkg.toJSON();
+                plain.resumen_sesiones = getPackageUsage(plain);
+                return plain;
+            }),
+            pagination: Pagination.set({
+                total: count,
+                page: normalizedPage,
+                limit: normalizedLimit
+            })
+        };
     },
 
     async getById(id) {
@@ -252,7 +303,8 @@ module.exports = {
                 },
                 {
                     model: Quotes,
-                    attributes: ['id']
+                    attributes: ['id', 'id_estado_citas'],
+                    include: [{ model: StatusQuotes, as: 'status', attributes: ['id', 'nombre'] }]
                 }
             ],
             order: [['id', 'DESC']]
@@ -265,7 +317,7 @@ module.exports = {
                 const citasFiltradas = quoteId
                     ? citas.filter(q => Number(q.id) !== Number(quoteId))
                     : citas;
-                const sesionesUsadas = citasFiltradas.length;
+                const sesionesUsadas = citasFiltradas.filter((quote) => isSessionConsumingStatusName(quote.status?.nombre)).length;
                 const sesionesDisponibles = Math.max(sesionesTotales - sesionesUsadas, 0);
 
                 return {

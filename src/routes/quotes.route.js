@@ -25,6 +25,7 @@ router.put('/update/:id', quotesController.updateQuote);
 router.put('/:id', quotesController.updateQuote);
 router.get('/get-by-package/:id', quotesController.getQuotesByPackage);
 router.get('/availability/:id', quotesController.getAvailability); // ?date=YYYY-MM-DD
+router.get('/:id', quotesController.getQuoteById);
 router.delete('/:id', quotesController.deleteQuote);
 
 module.exports = router;

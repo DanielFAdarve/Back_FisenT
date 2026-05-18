@@ -1,5 +1,9 @@
 const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
+const { Op } = require('sequelize');
 const { HistoryQuote, Cie10, Quotes, Packages, Patient, Payment, AttentionPackages, Professional, StatusQuotes, StatusPackages, sequelize } = require('../models');
+const Pagination = require('../models/Pagination.models');
+const packagesService = require('./packages.service');
+const { getNonConsumingQuoteStatusIds, buildConsumingQuoteWhere } = require('../utils/quoteSessionStatus.util');
 
 const ANTECEDENT_FIELDS = [
     'antecedentes',
@@ -46,6 +50,27 @@ const syncPatientAntecedentsFromHistory = async (id_cita, data, transaction) => 
     if (!patient) return;
 
     await patient.update(payload, { transaction });
+};
+
+const recalculateSessionNumbers = async (id_paquetes, transaction = null) => {
+    if (!id_paquetes) return;
+
+    const nonConsumingStatusIds = await getNonConsumingQuoteStatusIds(StatusQuotes, transaction);
+    const quotes = await Quotes.findAll({
+        where: {
+            id_paquetes,
+            ...buildConsumingQuoteWhere(nonConsumingStatusIds)
+        },
+        order: [['fecha_agendamiento', 'ASC'], ['horario_inicio', 'ASC'], ['id', 'ASC']],
+        transaction
+    });
+
+    for (let index = 0; index < quotes.length; index += 1) {
+        const nextNumber = index + 1;
+        if (quotes[index].numero_sesion !== nextNumber) {
+            await quotes[index].update({ numero_sesion: nextNumber }, { transaction });
+        }
+    }
 };
 
 const buildHistoryPdf = async (history) => {
@@ -462,8 +487,21 @@ module.exports = {
     },
 
 
-    async getByPatient(id_paciente) {
-        return await HistoryQuote.findAll({
+    async getByPatient(id_paciente, { page = 1, limit = 20, fechaInicio, fechaFin } = {}) {
+        const { page: normalizedPage, limit: normalizedLimit } = Pagination.normalize({ page, limit });
+        const offset = (normalizedPage - 1) * normalizedLimit;
+        const where = {};
+
+        if (fechaInicio && fechaFin) {
+            where.fecha_evolucion = { [Op.between]: [fechaInicio, fechaFin] };
+        } else if (fechaInicio) {
+            where.fecha_evolucion = { [Op.gte]: fechaInicio };
+        } else if (fechaFin) {
+            where.fecha_evolucion = { [Op.lte]: fechaFin };
+        }
+
+        const { rows, count } = await HistoryQuote.findAndCountAll({
+            where,
             include: [
                 { model: Cie10, as: 'Cie10', attributes: ['id', 'codigo', 'descripcion'] },
                 {
@@ -486,8 +524,20 @@ module.exports = {
                     ]
                 }
             ],
+            limit: normalizedLimit,
+            offset,
+            distinct: true,
             order: [['fecha_evolucion', 'DESC'], ['id', 'DESC']]
         });
+
+        return {
+            data: rows,
+            pagination: Pagination.set({
+                total: count,
+                page: normalizedPage,
+                limit: normalizedLimit
+            })
+        };
     },
 
     async getSummaryByHistoryNumber(historyNumber) {
@@ -604,8 +654,11 @@ module.exports = {
             if (!quote) throw new Error('Cita no encontrada');
 
             await HistoryQuote.destroy({ where: { id_cita: id }, transaction: t });
+            const packageId = quote.id_paquetes;
             await quote.destroy({ transaction: t });
-            return { id_cita: Number(id), historias_eliminadas: true };
+            await recalculateSessionNumbers(packageId, t);
+            const paquete = await packagesService.recalculatePackageStatus(packageId, t);
+            return { id_cita: Number(id), historias_eliminadas: true, paquete };
         });
     }
 };

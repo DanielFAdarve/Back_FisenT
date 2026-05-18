@@ -7,7 +7,8 @@ const { verifyToken } = require('../middlewares/auth.middleware');
 
 router.post('/create', historyController.create);
 router.put('/update/:id', historyController.update);
-router.get('/export-pdf/:id', historyController.exportPdf);
+router.get('/export-docx/:id', historyController.exportDocx);
+router.get('/export-pdf/:id', historyController.exportDocx); // Alias legado: devuelve DOCX por compatibilidad.
 router.get('/get-by-quote/:id', historyController.getByQuote);
 router.get('/get-by-patient/:id', historyController.getByPatient);
 router.get('/get-summary-by-history-number/:id', historyController.getSummaryByHistoryNumber);
