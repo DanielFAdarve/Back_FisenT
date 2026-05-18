@@ -1,5 +1,5 @@
 const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
-const { HistoryQuote, Cie10, Quotes, Packages, Patient, Payment, AttentionPackages, sequelize } = require('../models');
+const { HistoryQuote, Cie10, Quotes, Packages, Patient, Payment, AttentionPackages, Professional, StatusQuotes, StatusPackages, sequelize } = require('../models');
 
 const ANTECEDENT_FIELDS = [
     'antecedentes',
@@ -13,11 +13,17 @@ const ANTECEDENT_FIELDS = [
 ];
 
 const validateQuoteAndDiagnosis = async (id_cita, id_cie, transaction) => {
-    const quote = await Quotes.findByPk(id_cita, { transaction });
+    const quote = await Quotes.findByPk(id_cita, {
+        include: [{ model: Packages, as: 'package', include: [{ model: Patient, as: 'patient' }] }],
+        transaction
+    });
     if (!quote) throw new Error('La cita asociada no existe');
+    if (!quote.package?.patient) throw new Error('La cita no tiene paquete/paciente asociado');
 
     const cie = await Cie10.findByPk(id_cie, { transaction });
     if (!cie) throw new Error('El código CIE10 no existe');
+
+    return quote;
 };
 
 const syncPatientAntecedentsFromHistory = async (id_cita, data, transaction) => {
@@ -326,6 +332,13 @@ module.exports = {
 
             await validateQuoteAndDiagnosis(nextQuoteId, nextCieId, t);
 
+            if (Number(nextQuoteId) !== Number(history.id_cita)) {
+                const existingHistory = await HistoryQuote.findOne({ where: { id_cita: nextQuoteId }, transaction: t });
+                if (existingHistory && Number(existingHistory.id) !== Number(history.id)) {
+                    throw new Error('La cita destino ya tiene una evolución registrada');
+                }
+            }
+
             await history.update(data, { transaction: t });
             await syncPatientAntecedentsFromHistory(nextQuoteId, data, t);
 
@@ -402,10 +415,14 @@ module.exports = {
                         }
                     ]
                 },
+                { model: Professional, as: 'professional', attributes: ['id', 'nombre', 'apellido'] },
+                { model: StatusQuotes, as: 'status', attributes: ['id', 'nombre'] },
                 {
                     model: Packages,
                     as: 'package',
                     include: [
+                        { model: AttentionPackages, as: 'attentionPackage', attributes: ['id', 'descripcion', 'cantidad_sesiones', 'valor'] },
+                        { model: StatusPackages, as: 'statusPackage', attributes: ['id', 'nombre'] },
                         {
                             model: Patient,
                             as: 'patient',
@@ -582,6 +599,13 @@ module.exports = {
         };
     },
     async deleteQuote(id) {
-        Quotes.destroy({ where: { id } });
+        return await sequelize.transaction(async (t) => {
+            const quote = await Quotes.findByPk(id, { transaction: t });
+            if (!quote) throw new Error('Cita no encontrada');
+
+            await HistoryQuote.destroy({ where: { id_cita: id }, transaction: t });
+            await quote.destroy({ transaction: t });
+            return { id_cita: Number(id), historias_eliminadas: true };
+        });
     }
 };

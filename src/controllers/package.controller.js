@@ -106,7 +106,7 @@ module.exports = {
             const pkg = await packagesService.create(req.body);
             res.send(response.set(200, "Paquete creado", pkg));
         } catch (error) {
-            res.status(400).send(response.set(500, error.message));
+            res.status(400).send(response.set(400, error.message));
         }
     },
 
@@ -115,7 +115,7 @@ module.exports = {
             const pkgs = await packagesService.getByPatient(req.params.id);
             res.send(response.set(200, "Paquetes del paciente", pkgs));
         } catch (error) {
-            res.status(400).send(response.set(500, error.message));
+            res.status(400).send(response.set(400, error.message));
         }
     },
 
@@ -124,7 +124,7 @@ module.exports = {
             const pkg = await packagesService.getById(req.params.id);
             res.send(response.set(200, "Detalle del paquete", pkg));
         } catch (error) {
-            res.status(400).send(response.set(500, error.message));
+            res.status(400).send(response.set(400, error.message));
         }
     },
 
@@ -133,7 +133,7 @@ module.exports = {
             const result = await packagesService.close(req.params.id);
             res.send(response.set(200, "Paquete cerrado", result));
         } catch (error) {
-            res.status(400).send(response.set(500, error.message));
+            res.status(400).send(response.set(400, error.message));
         }
     },
 
