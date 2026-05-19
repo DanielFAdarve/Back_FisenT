@@ -28,6 +28,8 @@ const allowedOrigins = [
     'http://localhost:4200',
     'http://localhost:3000',
     'http://fisencare.com',
+    'https://fisencare.com',
+    'https://www.fisencare.com',
     'https://danielfadarve.github.io'
   ];
   
