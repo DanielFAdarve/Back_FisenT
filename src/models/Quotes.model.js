@@ -32,11 +32,13 @@ class Quotes extends Model {
                 },
                 recordatorio: {
                     type: DataTypes.BOOLEAN,
-                    allowNull: false
+                    allowNull: false,
+                    defaultValue: true
                 },
                 id_estado_citas: {
                     type: DataTypes.INTEGER,
-                    allowNull: false
+                    allowNull: false,
+                    deafultValue: 1
                 },
                 motivo: {
                     type: DataTypes.STRING(255),
