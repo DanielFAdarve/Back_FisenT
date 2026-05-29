@@ -134,14 +134,14 @@ const validateQuotePayload = async ({ data, currentQuote = null, transaction = n
         };
     }
 
-    await ensureProfessionalAvailability({
-        id_profesional: payload.id_profesional,
-        fecha_agendamiento: payload.fecha_agendamiento,
-        horario_inicio: payload.horario_inicio,
-        horario_fin: payload.horario_fin,
-        excludeQuoteId: currentQuote?.id || null,
-        transaction
-    });
+    // await ensureProfessionalAvailability({
+    //     id_profesional: payload.id_profesional,
+    //     fecha_agendamiento: payload.fecha_agendamiento,
+    //     horario_inicio: payload.horario_inicio,
+    //     horario_fin: payload.horario_fin,
+    //     excludeQuoteId: currentQuote?.id || null,
+    //     transaction
+    // });
 
     return { payload, packageSummary };
 };
