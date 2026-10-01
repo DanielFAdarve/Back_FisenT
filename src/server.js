@@ -6,6 +6,7 @@ const dotenv = require('dotenv');
 // Carga las rutas y express
 const app = require('./routes.js');
 const { sequelize } = require('./models');
+const { runMigrations } = require('./services/database-migrations.service');
 
 
 dotenv.config();
@@ -22,6 +23,7 @@ async function startServer() {
   try {
     console.log("URL DB:",process.env.DATABASE_URL);
     await sequelize.authenticate(); // Verifica conexión
+    await runMigrations();
     await sequelize.sync();         // Crea tablas si no existen
   // await sequelize.sync({ alter: true }).then(() => {
   //   console.log('Base de datos actualizada (alter: true)');

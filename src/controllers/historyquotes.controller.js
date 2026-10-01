@@ -1,6 +1,7 @@
 const response = require('../models/Response.models');
 const historyService = require('../services/historyquotes.service');
-const docService = require('../services/doc.service')
+const trainingSessionService = require('../services/training-session-history.service');
+const docService = require('../services/doc.service');
 
 module.exports = {
     async create(req, res) {
@@ -42,6 +43,52 @@ module.exports = {
             // return res.send(response.set(200, 'Historial', historial));
 
 
+        } catch (e) {
+            res.status(400).send(response.set(400, e.message));
+        }
+    },
+
+    async createTrainingSession(req, res) {
+        try {
+            const history = await trainingSessionService.create(req.body);
+            res.send(response.set(200, 'Historia de sesión de entrenamiento creada', history));
+        } catch (e) {
+            res.status(400).send(response.set(400, e.message));
+        }
+    },
+
+    async updateTrainingSession(req, res) {
+        try {
+            const history = await trainingSessionService.update(req.params.id, req.body);
+            res.send(response.set(200, 'Historia de sesión de entrenamiento actualizada', history));
+        } catch (e) {
+            res.status(400).send(response.set(400, e.message));
+        }
+    },
+
+    async getTrainingSession(req, res) {
+        try {
+            const history = await trainingSessionService.getById(req.params.id);
+            res.send(response.set(200, 'Historia de sesión de entrenamiento', history));
+        } catch (e) {
+            res.status(404).send(response.set(404, e.message));
+        }
+    },
+
+    async exportTrainingSessionDocx(req, res) {
+        try {
+            const history = await trainingSessionService.getById(req.params.id);
+            const docFile = await docService.buildTrainingSessionDocx(history);
+
+            res.setHeader(
+                'Content-Type',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            );
+            res.setHeader(
+                'Content-Disposition',
+                `attachment; filename=sesion-entrenamiento-${req.params.id}.docx`
+            );
+            return res.send(docFile);
         } catch (e) {
             res.status(400).send(response.set(400, e.message));
         }
